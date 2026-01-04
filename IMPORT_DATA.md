@@ -14,7 +14,7 @@
 Создайте файл `.env` в корне проекта и добавьте:
 
 ```env
-DATABASE_URL="postgresql://neondb_owner:npg_JHuo5yihlK0X@ep-tiny-base-ae1jc3sm-pooler.c-2.us-east-2.aws.neon.tech/neondb?channel_binding=require&sslmode=require"
+DATABASE_URL="postgresql://username:password@host.neon.tech/neondb?sslmode=require"
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=dev-secret-key-change-me
 ```

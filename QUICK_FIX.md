@@ -11,7 +11,7 @@
 Создайте файл `.env` в корне проекта `C:\cursorproject\Autotop\.env` со следующим содержимым:
 
 ```env
-DATABASE_URL="postgresql://neondb_owner:npg_JHuo5yihlK0X@ep-tiny-base-ae1jc3sm-pooler.c-2.us-east-2.aws.neon.tech/neondb?channel_binding=require&sslmode=require"
+DATABASE_URL="postgresql://username:password@host.neon.tech/neondb?sslmode=require"
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=dev-secret-key-change-me-in-production-12345
 GOOGLE_CLIENT_ID=
@@ -43,7 +43,7 @@ npm run dev
 
 **PowerShell:**
 ```powershell
-$env:DATABASE_URL="postgresql://neondb_owner:npg_JHuo5yihlK0X@ep-tiny-base-ae1jc3sm-pooler.c-2.us-east-2.aws.neon.tech/neondb?channel_binding=require&sslmode=require"
+$env:DATABASE_URL="postgresql://username:password@host.neon.tech/neondb?sslmode=require"
 $env:NEXTAUTH_URL="http://localhost:3000"
 $env:NEXTAUTH_SECRET="dev-secret-key"
 npm run dev
@@ -51,7 +51,7 @@ npm run dev
 
 **Command Prompt (cmd):**
 ```cmd
-set DATABASE_URL=postgresql://neondb_owner:npg_JHuo5yihlK0X@ep-tiny-base-ae1jc3sm-pooler.c-2.us-east-2.aws.neon.tech/neondb?channel_binding=require&sslmode=require
+set DATABASE_URL=postgresql://username:password@host.neon.tech/neondb?sslmode=require
 set NEXTAUTH_URL=http://localhost:3000
 set NEXTAUTH_SECRET=dev-secret-key
 npm run dev
