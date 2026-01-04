@@ -28,6 +28,7 @@ async function getAuthOptions(): Promise<NextAuthOptions> {
           return null
         }
 
+        const { prisma } = await import('@/lib/prisma')
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         })
@@ -59,6 +60,7 @@ async function getAuthOptions(): Promise<NextAuthOptions> {
     async signIn({ user, account, profile }) {
       if (account?.provider === 'google') {
         try {
+          const { prisma } = await import('@/lib/prisma')
           const existingUser = await prisma.user.findUnique({
             where: { email: user.email! },
           })
@@ -97,6 +99,7 @@ async function getAuthOptions(): Promise<NextAuthOptions> {
         token.id = user.id
         token.role = user.role
       } else if (token.email) {
+        const { prisma } = await import('@/lib/prisma')
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email as string },
         })
