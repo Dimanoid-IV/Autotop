@@ -135,7 +135,7 @@ export default function SignInPage() {
             </div>
 
             <p className="mt-6 text-center text-sm text-gray-600">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <a href="/register" className="text-primary hover:underline">
                 {t('register')}
               </a>
