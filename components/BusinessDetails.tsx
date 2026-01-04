@@ -189,3 +189,4 @@ export function BusinessDetails({ business, locale }: BusinessDetailsProps) {
   )
 }
 
+

@@ -81,3 +81,4 @@ export function BusinessCard({ business, locale }: BusinessCardProps) {
   )
 }
 
+

@@ -42,3 +42,4 @@ export function Map({ latitude, longitude, name }: MapProps) {
   return <div ref={mapRef} className="w-full h-full" />
 }
 
+

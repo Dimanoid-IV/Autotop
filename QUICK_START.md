@@ -99,3 +99,4 @@ npm run dev
 - Для Google OAuth нужно настроить Google Cloud Console
 - Без email/Google OAuth можно использовать только email/пароль регистрацию
 
+
