@@ -126,14 +126,19 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
   return _authOptions
 }
 
-// Экспортируем синхронный authOptions для совместимости (инициализируется лениво)
-// ВАЖНО: Это не инициализирует Prisma до первого вызова getAuthOptions()
-export const authOptions = (() => {
+// Экспортируем синхронный authOptions для обратной совместимости
+// Инициализируется лениво через Proxy
+export const authOptions: NextAuthOptions = (() => {
   let _cached: NextAuthOptions | null = null
+  const initPromise = getAuthOptions().then(opts => {
+    _cached = opts
+  })
+  
   return new Proxy({} as NextAuthOptions, {
     get(target, prop) {
       if (!_cached) {
-        throw new Error('authOptions accessed before initialization. Use getAuthOptions() instead.')
+        // Синхронный доступ - выбрасываем ошибку
+        throw new Error('authOptions accessed synchronously. Use getAuthOptions() instead.')
       }
       return (_cached as any)[prop]
     }
