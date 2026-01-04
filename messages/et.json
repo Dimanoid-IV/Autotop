@@ -1,0 +1,73 @@
+{
+  "common": {
+    "home": "Avaleht",
+    "ratings": "Hinnangud",
+    "cities": "Linnad",
+    "addService": "Lisa teenus",
+    "contacts": "Kontaktid",
+    "faq": "KKK",
+    "search": "Otsi",
+    "searchPlaceholder": "Sisesta linn või teenuse nimi",
+    "details": "Detailid",
+    "rating": "Hinnang",
+    "reviews": "Arvustused",
+    "addReview": "Lisa arvustus",
+    "signIn": "Logi sisse",
+    "signOut": "Logi välja",
+    "register": "Registreeru",
+    "name": "Nimi",
+    "email": "Email",
+    "password": "Parool",
+    "submit": "Saada",
+    "cancel": "Tühista",
+    "save": "Salvesta",
+    "edit": "Muuda",
+    "delete": "Kustuta",
+    "loading": "Laadimine...",
+    "error": "Viga",
+    "success": "Õnnestus",
+    "close": "Sulge"
+  },
+  "hero": {
+    "title": "Leia parim autoteenus Eestis",
+    "subtitle": "Ausad arvustused. Päris hinnangud."
+  },
+  "business": {
+    "address": "Aadress",
+    "phone": "Telefon",
+    "website": "Veebileht",
+    "description": "Kirjeldus",
+    "verified": "Kinnitatud",
+    "noReviews": "Arvustusi pole veel",
+    "writeReview": "Kirjuta arvustus",
+    "ownerCTA": "Kas oled selle autoteenuse omanik?",
+    "ownerCTADesc": "Kinnita oma profiil ja saa rohkem kliente.",
+    "addService": "Lisa teenus"
+  },
+  "review": {
+    "title": "Arvustus",
+    "rating": "Hinnang",
+    "comment": "Kommentaar",
+    "submit": "Saada arvustus",
+    "pending": "Ootab modereerimist",
+    "approved": "Kinnitatud",
+    "replied": "Vastatud",
+    "reply": "Vasta",
+    "replyPlaceholder": "Kirjuta oma vastus..."
+  },
+  "top10": {
+    "title": "Top 10 autoteenust",
+    "inCity": "sinu linnas"
+  },
+  "latestReviews": {
+    "title": "Viimased arvustused"
+  },
+  "categories": {
+    "autoService": "Autoteenus",
+    "autoRepair": "Autoremont",
+    "carWash": "Autopesu",
+    "detailing": "Detailimine",
+    "serviceStation": "Teenindusjaam"
+  }
+}
+

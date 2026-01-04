@@ -1,0 +1,73 @@
+{
+  "common": {
+    "home": "Главная",
+    "ratings": "Рейтинги",
+    "cities": "Города",
+    "addService": "Добавить услугу",
+    "contacts": "Контакты",
+    "faq": "FAQ",
+    "search": "Поиск",
+    "searchPlaceholder": "Введите город или название услуги",
+    "details": "Подробнее",
+    "rating": "Рейтинг",
+    "reviews": "Отзывы",
+    "addReview": "Добавить отзыв",
+    "signIn": "Войти",
+    "signOut": "Выйти",
+    "register": "Регистрация",
+    "name": "Имя",
+    "email": "Email",
+    "password": "Пароль",
+    "submit": "Отправить",
+    "cancel": "Отмена",
+    "save": "Сохранить",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "loading": "Загрузка...",
+    "error": "Ошибка",
+    "success": "Успешно",
+    "close": "Закрыть"
+  },
+  "hero": {
+    "title": "Найди лучший автосервис в Эстонии",
+    "subtitle": "Честные отзывы. Реальные рейтинги."
+  },
+  "business": {
+    "address": "Адрес",
+    "phone": "Телефон",
+    "website": "Веб-сайт",
+    "description": "Описание",
+    "verified": "Подтверждено",
+    "noReviews": "Отзывов пока нет",
+    "writeReview": "Написать отзыв",
+    "ownerCTA": "Вы владелец этого автосервиса?",
+    "ownerCTADesc": "Подтвердите свой профиль и получите больше клиентов.",
+    "addService": "Добавить услугу"
+  },
+  "review": {
+    "title": "Отзыв",
+    "rating": "Оценка",
+    "comment": "Комментарий",
+    "submit": "Отправить отзыв",
+    "pending": "Ожидает модерации",
+    "approved": "Одобрено",
+    "replied": "Отвечено",
+    "reply": "Ответить",
+    "replyPlaceholder": "Напишите свой ответ..."
+  },
+  "top10": {
+    "title": "Топ 10 автосервисов",
+    "inCity": "в вашем городе"
+  },
+  "latestReviews": {
+    "title": "Последние отзывы"
+  },
+  "categories": {
+    "autoService": "Автосервис",
+    "autoRepair": "Авторемонт",
+    "carWash": "Автомойка",
+    "detailing": "Детейлинг",
+    "serviceStation": "Сервисная станция"
+  }
+}
+
