@@ -4,11 +4,13 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import GoogleProvider from 'next-auth/providers/google'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import type { NextRequest } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const authOptions: NextAuthOptions = {
+function getAuthOptions(): NextAuthOptions {
+  return {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
@@ -112,10 +114,24 @@ const authOptions: NextAuthOptions = {
     strategy: 'jwt',
   },
   secret: process.env.NEXTAUTH_SECRET,
+  }
 }
 
-const handler = NextAuth(authOptions)
+let handler: ReturnType<typeof NextAuth> | null = null
 
-export { handler as GET, handler as POST }
+function getHandler() {
+  if (!handler) {
+    handler = NextAuth(getAuthOptions())
+  }
+  return handler
+}
+
+export async function GET(req: NextRequest) {
+  return getHandler()(req as any)
+}
+
+export async function POST(req: NextRequest) {
+  return getHandler()(req as any)
+}
 
 
