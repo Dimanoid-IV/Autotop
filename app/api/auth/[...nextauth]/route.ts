@@ -2,14 +2,15 @@ import NextAuth from 'next-auth'
 import type { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import GoogleProvider from 'next-auth/providers/google'
-import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import type { NextRequest } from 'next/server'
+import type { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-function getAuthOptions(): NextAuthOptions {
+async function getAuthOptions(): Promise<NextAuthOptions> {
+  const { prisma } = await import('@/lib/prisma')
+  
   return {
   providers: [
     GoogleProvider({
@@ -119,19 +120,26 @@ function getAuthOptions(): NextAuthOptions {
 
 let handler: ReturnType<typeof NextAuth> | null = null
 
-function getHandler() {
+async function getHandler() {
   if (!handler) {
-    handler = NextAuth(getAuthOptions())
+    const authOptions = await getAuthOptions()
+    handler = NextAuth(authOptions)
   }
   return handler
 }
 
-export async function GET(req: NextRequest) {
-  return getHandler()(req as any)
+export async function GET(
+  req: NextRequest
+): Promise<NextResponse> {
+  const authHandler = await getHandler()
+  return (authHandler as any)(req as any, {} as any) as Promise<NextResponse>
 }
 
-export async function POST(req: NextRequest) {
-  return getHandler()(req as any)
+export async function POST(
+  req: NextRequest
+): Promise<NextResponse> {
+  const authHandler = await getHandler()
+  return (authHandler as any)(req as any, {} as any) as Promise<NextResponse>
 }
 
 
