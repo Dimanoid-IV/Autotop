@@ -3,7 +3,8 @@ export const runtime = 'nodejs'
 
 async function getHandler() {
   const NextAuth = (await import('next-auth')).default
-  const { authOptions } = await import('@/lib/auth')
+  const { getAuthOptions } = await import('@/lib/auth')
+  const authOptions = await getAuthOptions()
   return NextAuth(authOptions)
 }
 
