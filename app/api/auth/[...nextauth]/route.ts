@@ -4,7 +4,13 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 // Ленивая инициализация NextAuth handler
-async function createHandler() {
+let handler: any = null
+
+async function getHandler() {
+  if (handler) {
+    return handler
+  }
+
   // Проверяем обязательные переменные перед инициализацией
   if (!process.env.NEXTAUTH_SECRET) {
     throw new Error('NEXTAUTH_SECRET is not set')
@@ -16,20 +22,11 @@ async function createHandler() {
   const NextAuth = (await import('next-auth')).default
   const { getAuthOptions } = await import('@/lib/auth')
   const authOptions = await getAuthOptions()
-  const handler = NextAuth(authOptions)
   
-  // NextAuth v4 возвращает функцию, которая принимает Request и возвращает Response
-  // В App Router нужно обернуть её в методы GET и POST
+  // NextAuth v4 в App Router возвращает объект с методами GET и POST
+  handler = NextAuth(authOptions)
+  
   return handler
-}
-
-let _handler: Awaited<ReturnType<typeof createHandler>> | null = null
-
-async function getHandler() {
-  if (!_handler) {
-    _handler = await createHandler()
-  }
-  return _handler
 }
 
 // Обработчик ошибок для возврата валидного ответа
@@ -53,11 +50,20 @@ export async function GET(req: NextRequest) {
       return errorResponse('Required environment variables are not set')
     }
 
-    const handler = await getHandler()
+    const authHandler = await getHandler()
     
-    // NextAuth handler - это функция, которая принимает Request
-    // В App Router она автоматически обрабатывает NextRequest
-    return await handler(req as any)
+    // NextAuth v4 в App Router возвращает объект с методами GET и POST
+    // Проверяем, есть ли метод GET
+    if (authHandler && typeof authHandler === 'function') {
+      // Если handler - функция, вызываем её напрямую
+      return await authHandler(req as any)
+    } else if (authHandler && typeof authHandler.GET === 'function') {
+      // Если handler - объект с методом GET
+      return await authHandler.GET(req as any)
+    } else {
+      // Fallback: пытаемся вызвать как функцию
+      return await (authHandler as any)(req)
+    }
   } catch (error) {
     console.error('NextAuth GET error:', error)
     return errorResponse(
@@ -73,11 +79,20 @@ export async function POST(req: NextRequest) {
       return errorResponse('Required environment variables are not set')
     }
 
-    const handler = await getHandler()
+    const authHandler = await getHandler()
     
-    // NextAuth handler - это функция, которая принимает Request
-    // В App Router она автоматически обрабатывает NextRequest
-    return await handler(req as any)
+    // NextAuth v4 в App Router возвращает объект с методами GET и POST
+    // Проверяем, есть ли метод POST
+    if (authHandler && typeof authHandler === 'function') {
+      // Если handler - функция, вызываем её напрямую
+      return await authHandler(req as any)
+    } else if (authHandler && typeof authHandler.POST === 'function') {
+      // Если handler - объект с методом POST
+      return await authHandler.POST(req as any)
+    } else {
+      // Fallback: пытаемся вызвать как функцию
+      return await (authHandler as any)(req)
+    }
   } catch (error) {
     console.error('NextAuth POST error:', error)
     return errorResponse(
