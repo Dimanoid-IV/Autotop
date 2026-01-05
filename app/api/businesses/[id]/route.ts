@@ -6,11 +6,12 @@ export const runtime = 'nodejs'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const business = await prisma.business.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         city: true,
         category: true,
