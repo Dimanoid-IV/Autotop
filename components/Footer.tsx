@@ -28,35 +28,8 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/ratings" className="text-gray-400 hover:text-white">
-                  {t('ratings')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/cities" className="text-gray-400 hover:text-white">
-                  {t('cities')}
-                </Link>
-              </li>
-              <li>
                 <Link href="/add-service" className="text-gray-400 hover:text-white">
                   {t('addService')}
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Legal */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4">Legal</h4>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/privacy" className="text-gray-400 hover:text-white">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="/terms" className="text-gray-400 hover:text-white">
-                  Terms of Service
                 </Link>
               </li>
             </ul>

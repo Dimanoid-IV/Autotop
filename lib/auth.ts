@@ -7,6 +7,17 @@ import bcrypt from 'bcryptjs'
 let _authOptions: NextAuthOptions | null = null
 
 async function createAuthOptions(): Promise<NextAuthOptions> {
+  // Проверяем обязательные переменные окружения
+  if (!process.env.NEXTAUTH_SECRET) {
+    console.error('NEXTAUTH_SECRET is not set')
+    throw new Error('NEXTAUTH_SECRET is required')
+  }
+
+  if (!process.env.DATABASE_URL) {
+    console.error('DATABASE_URL is not set')
+    throw new Error('DATABASE_URL is required')
+  }
+
   const { prisma } = await import('./prisma')
   
   return {

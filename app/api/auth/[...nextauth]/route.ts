@@ -11,15 +11,37 @@ async function getHandler() {
 let handler: Awaited<ReturnType<typeof getHandler>> | null = null
 
 export async function GET(req: Request) {
-  if (!handler) {
-    handler = await getHandler()
+  try {
+    if (!handler) {
+      handler = await getHandler()
+    }
+    return (handler as any)(req)
+  } catch (error) {
+    console.error('NextAuth GET error:', error)
+    return new Response(
+      JSON.stringify({ error: 'Authentication service unavailable' }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    )
   }
-  return (handler as any)(req)
 }
 
 export async function POST(req: Request) {
-  if (!handler) {
-    handler = await getHandler()
+  try {
+    if (!handler) {
+      handler = await getHandler()
+    }
+    return (handler as any)(req)
+  } catch (error) {
+    console.error('NextAuth POST error:', error)
+    return new Response(
+      JSON.stringify({ error: 'Authentication service unavailable' }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    )
   }
-  return (handler as any)(req)
 }
