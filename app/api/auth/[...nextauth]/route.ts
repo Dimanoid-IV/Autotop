@@ -1,3 +1,5 @@
+import { NextRequest } from 'next/server'
+
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
@@ -17,23 +19,17 @@ async function getHandler() {
     return NextAuth(authOptions)
   } catch (error) {
     console.error('Failed to initialize NextAuth:', error)
-    // Возвращаем заглушку, которая всегда возвращает ошибку
-    return {
-      GET: () => new Response(
-        JSON.stringify({ error: 'Authentication service unavailable. Please check environment variables.' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      ),
-      POST: () => new Response(
-        JSON.stringify({ error: 'Authentication service unavailable. Please check environment variables.' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      ),
-    } as any
+    // Возвращаем функцию-заглушку, которая всегда возвращает ошибку
+    return async () => new Response(
+      JSON.stringify({ error: 'Authentication service unavailable. Please check environment variables.' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
   }
 }
 
 let handler: Awaited<ReturnType<typeof getHandler>> | null = null
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     // Проверяем переменные окружения перед инициализацией
     if (!process.env.NEXTAUTH_SECRET) {
@@ -68,25 +64,10 @@ export async function GET(req: Request) {
       handler = await getHandler()
     }
 
-    // NextAuth handler ожидает Request объект напрямую
-    // В Next.js 14 App Router это должно работать правильно
-    try {
-      const response = await (handler as any)(req)
-      return response
-    } catch (handlerError) {
-      console.error('NextAuth handler error:', handlerError)
-      // Если handler выбрасывает ошибку, возвращаем валидный JSON
-      return new Response(
-        JSON.stringify({ 
-          error: 'Authentication service unavailable',
-          message: handlerError instanceof Error ? handlerError.message : 'Handler error'
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      )
-    }
+    // NextAuth v4 handler - это функция, которая принимает Request и возвращает Response
+    // В App Router NextAuth автоматически обрабатывает NextRequest
+    const response = await handler(req as any)
+    return response
   } catch (error) {
     console.error('NextAuth GET error:', error)
     return new Response(
@@ -102,7 +83,7 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     // Проверяем переменные окружения перед инициализацией
     if (!process.env.NEXTAUTH_SECRET) {
@@ -137,25 +118,10 @@ export async function POST(req: Request) {
       handler = await getHandler()
     }
 
-    // NextAuth handler ожидает Request объект напрямую
-    // В Next.js 14 App Router это должно работать правильно
-    try {
-      const response = await (handler as any)(req)
-      return response
-    } catch (handlerError) {
-      console.error('NextAuth handler error:', handlerError)
-      // Если handler выбрасывает ошибку, возвращаем валидный JSON
-      return new Response(
-        JSON.stringify({ 
-          error: 'Authentication service unavailable',
-          message: handlerError instanceof Error ? handlerError.message : 'Handler error'
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      )
-    }
+    // NextAuth v4 handler - это функция, которая принимает Request и возвращает Response
+    // В App Router NextAuth автоматически обрабатывает NextRequest
+    const response = await handler(req as any)
+    return response
   } catch (error) {
     console.error('NextAuth POST error:', error)
     return new Response(
