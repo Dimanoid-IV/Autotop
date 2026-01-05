@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/routing'
+import { useParams } from 'next/navigation'
 import { MapPin, Star, CheckCircle } from 'lucide-react'
 import { formatRating } from '@/lib/utils'
 
@@ -29,8 +30,10 @@ interface BusinessCardProps {
 
 export function BusinessCard({ business, locale }: BusinessCardProps) {
   const t = useTranslations('common')
-  const cityName = locale === 'ru' ? business.city.nameRu : business.city.nameEt
-  const categoryName = locale === 'ru' ? business.category.nameRu : business.category.nameEt
+  const params = useParams()
+  const currentLocale = (params?.locale as string) || locale
+  const cityName = currentLocale === 'ru' ? business.city.nameRu : business.city.nameEt
+  const categoryName = currentLocale === 'ru' ? business.category.nameRu : business.category.nameEt
 
   return (
     <div className="bg-white rounded-card shadow-card hover:shadow-card-hover transition-shadow p-6">

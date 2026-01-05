@@ -16,9 +16,17 @@ export default async function BusinessPage({
   const { id, locale } = await params
 
   try {
+    // Используем относительный путь для API запроса
+    const baseUrl = process.env.NEXTAUTH_URL || 
+      (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
     const response = await fetch(
-      `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/businesses/${id}`,
-      { cache: 'no-store' }
+      `${baseUrl}/api/businesses/${id}`,
+      { 
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
     )
 
     if (!response.ok) {
