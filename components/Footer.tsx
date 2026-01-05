@@ -5,6 +5,7 @@ import { Link } from '@/i18n/routing'
 
 export function Footer() {
   const t = useTranslations('common')
+  const tHero = useTranslations('hero')
 
   return (
     <footer className="bg-gray-900 text-white mt-20">
@@ -14,13 +15,13 @@ export function Footer() {
           <div>
             <h3 className="text-lg font-bold mb-4">AutoTop</h3>
             <p className="text-gray-400 text-sm">
-              {t('hero.subtitle')}
+              {tHero('subtitle')}
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-lg font-semibold mb-4">{t('common')}</h4>
+            <h4 className="text-lg font-semibold mb-4">{t('home')}</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/" className="text-gray-400 hover:text-white">
