@@ -21,13 +21,26 @@ export function BusinessGrid({ locale }: BusinessGridProps) {
   const loadBusinesses = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/businesses?page=${page}&limit=12`)
+      const response = await fetch(`/api/businesses?page=${page}&limit=12`, {
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch businesses')
+        const errorText = await response.text()
+        console.error('API Error:', response.status, errorText)
+        throw new Error(`Failed to fetch businesses: ${response.status}`)
       }
+      
       const data = await response.json()
+      console.log('Businesses data received:', data)
+      
       const businessesList = data?.businesses || []
       const pagination = data?.pagination || { page: 1, totalPages: 1 }
+      
+      console.log('Businesses list:', businessesList.length, 'items')
       
       if (page === 1) {
         setBusinesses(businessesList)
@@ -37,6 +50,10 @@ export function BusinessGrid({ locale }: BusinessGridProps) {
       setHasMore(pagination.page < pagination.totalPages)
     } catch (error) {
       console.error('Error loading businesses:', error)
+      if (error instanceof Error) {
+        console.error('Error message:', error.message)
+        console.error('Error stack:', error.stack)
+      }
       setBusinesses([])
     } finally {
       setLoading(false)

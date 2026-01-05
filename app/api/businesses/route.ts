@@ -6,6 +6,24 @@ export const runtime = 'nodejs'
 // GET endpoint is public - unregistered users can view businesses
 export async function GET(request: NextRequest) {
   try {
+    // Check DATABASE_URL before importing Prisma
+    if (!process.env.DATABASE_URL) {
+      console.error('DATABASE_URL is not set')
+      return NextResponse.json(
+        {
+          businesses: [],
+          pagination: {
+            page: 1,
+            limit: 12,
+            total: 0,
+            totalPages: 0,
+          },
+          error: 'Database connection not configured',
+        },
+        { status: 500 }
+      )
+    }
+
     const { prisma } = await import('@/lib/prisma')
     const searchParams = request.nextUrl.searchParams
     const city = searchParams.get('city')
@@ -52,6 +70,8 @@ export async function GET(request: NextRequest) {
       }),
       prisma.business.count({ where }),
     ])
+
+    console.log(`Found ${businesses.length} businesses, total: ${total}`)
 
     const businessesWithRating = businesses.map((business) => {
       const approvedReviews = business.reviews.filter(
