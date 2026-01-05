@@ -35,14 +35,64 @@ let handler: Awaited<ReturnType<typeof getHandler>> | null = null
 
 export async function GET(req: Request) {
   try {
+    // Проверяем переменные окружения перед инициализацией
+    if (!process.env.NEXTAUTH_SECRET) {
+      console.error('NEXTAUTH_SECRET is not set')
+      return new Response(
+        JSON.stringify({ 
+          error: 'Authentication service unavailable',
+          message: 'NEXTAUTH_SECRET environment variable is not set'
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    if (!process.env.DATABASE_URL) {
+      console.error('DATABASE_URL is not set')
+      return new Response(
+        JSON.stringify({ 
+          error: 'Authentication service unavailable',
+          message: 'DATABASE_URL environment variable is not set'
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     if (!handler) {
       handler = await getHandler()
     }
-    return (handler as any)(req)
+
+    // Вызываем handler и обрабатываем ответ
+    const response = await (handler as any)(req)
+    
+    // Если ответ не валидный, возвращаем ошибку
+    if (!response || !response.ok) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Authentication service unavailable',
+          message: 'Failed to process authentication request'
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    return response
   } catch (error) {
     console.error('NextAuth GET error:', error)
     return new Response(
-      JSON.stringify({ error: 'Authentication service unavailable' }),
+      JSON.stringify({ 
+        error: 'Authentication service unavailable',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      }),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
@@ -53,14 +103,64 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    // Проверяем переменные окружения перед инициализацией
+    if (!process.env.NEXTAUTH_SECRET) {
+      console.error('NEXTAUTH_SECRET is not set')
+      return new Response(
+        JSON.stringify({ 
+          error: 'Authentication service unavailable',
+          message: 'NEXTAUTH_SECRET environment variable is not set'
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    if (!process.env.DATABASE_URL) {
+      console.error('DATABASE_URL is not set')
+      return new Response(
+        JSON.stringify({ 
+          error: 'Authentication service unavailable',
+          message: 'DATABASE_URL environment variable is not set'
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     if (!handler) {
       handler = await getHandler()
     }
-    return (handler as any)(req)
+
+    // Вызываем handler и обрабатываем ответ
+    const response = await (handler as any)(req)
+    
+    // Если ответ не валидный, возвращаем ошибку
+    if (!response || !response.ok) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Authentication service unavailable',
+          message: 'Failed to process authentication request'
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    return response
   } catch (error) {
     console.error('NextAuth POST error:', error)
     return new Response(
-      JSON.stringify({ error: 'Authentication service unavailable' }),
+      JSON.stringify({ 
+        error: 'Authentication service unavailable',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      }),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
