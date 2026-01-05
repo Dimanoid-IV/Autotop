@@ -68,15 +68,18 @@ export async function GET(req: Request) {
       handler = await getHandler()
     }
 
-    // Вызываем handler и обрабатываем ответ
-    const response = await (handler as any)(req)
-    
-    // Если ответ не валидный, возвращаем ошибку
-    if (!response || !response.ok) {
+    // NextAuth handler ожидает Request объект напрямую
+    // В Next.js 14 App Router это должно работать правильно
+    try {
+      const response = await (handler as any)(req)
+      return response
+    } catch (handlerError) {
+      console.error('NextAuth handler error:', handlerError)
+      // Если handler выбрасывает ошибку, возвращаем валидный JSON
       return new Response(
         JSON.stringify({ 
           error: 'Authentication service unavailable',
-          message: 'Failed to process authentication request'
+          message: handlerError instanceof Error ? handlerError.message : 'Handler error'
         }),
         {
           status: 500,
@@ -84,8 +87,6 @@ export async function GET(req: Request) {
         }
       )
     }
-
-    return response
   } catch (error) {
     console.error('NextAuth GET error:', error)
     return new Response(
@@ -136,15 +137,18 @@ export async function POST(req: Request) {
       handler = await getHandler()
     }
 
-    // Вызываем handler и обрабатываем ответ
-    const response = await (handler as any)(req)
-    
-    // Если ответ не валидный, возвращаем ошибку
-    if (!response || !response.ok) {
+    // NextAuth handler ожидает Request объект напрямую
+    // В Next.js 14 App Router это должно работать правильно
+    try {
+      const response = await (handler as any)(req)
+      return response
+    } catch (handlerError) {
+      console.error('NextAuth handler error:', handlerError)
+      // Если handler выбрасывает ошибку, возвращаем валидный JSON
       return new Response(
         JSON.stringify({ 
           error: 'Authentication service unavailable',
-          message: 'Failed to process authentication request'
+          message: handlerError instanceof Error ? handlerError.message : 'Handler error'
         }),
         {
           status: 500,
@@ -152,8 +156,6 @@ export async function POST(req: Request) {
         }
       )
     }
-
-    return response
   } catch (error) {
     console.error('NextAuth POST error:', error)
     return new Response(
