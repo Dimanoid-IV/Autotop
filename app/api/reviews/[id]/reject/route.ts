@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
+    const { getServerSession } = await import('next-auth')
+    const { getAuthOptions } = await import('@/lib/auth')
+    const authOptions = await getAuthOptions()
     const session = await getServerSession(authOptions)
 
     if (!session?.user) {
@@ -23,7 +28,7 @@ export async function GET(
     }
 
     const review = await prisma.review.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!review) {
@@ -31,7 +36,7 @@ export async function GET(
     }
 
     await prisma.review.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         status: 'REJECTED',
       },
