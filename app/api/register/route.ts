@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -11,6 +13,7 @@ const registerSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const { prisma } = await import('@/lib/prisma')
     const body = await request.json()
     const { email, password, name } = registerSchema.parse(body)
 

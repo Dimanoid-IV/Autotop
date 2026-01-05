@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { sendReplyModerationEmail } from '@/lib/email'
 import { z } from 'zod'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 const replySchema = z.object({
   comment: z.string().min(1),
@@ -12,6 +12,10 @@ const replySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const { prisma } = await import('@/lib/prisma')
+    const { getServerSession } = await import('next-auth')
+    const { getAuthOptions } = await import('@/lib/auth')
+    const authOptions = await getAuthOptions()
     const session = await getServerSession(authOptions)
 
     if (!session?.user) {

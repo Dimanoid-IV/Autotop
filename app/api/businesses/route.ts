@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 // GET endpoint is public - unregistered users can view businesses
 export async function GET(request: NextRequest) {
   try {
+    const { prisma } = await import('@/lib/prisma')
     const searchParams = request.nextUrl.searchParams
     const city = searchParams.get('city')
     const category = searchParams.get('category')
@@ -109,8 +112,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const { prisma } = await import('@/lib/prisma')
     const { getServerSession } = await import('next-auth')
-    const { authOptions } = await import('@/lib/auth')
+    const { getAuthOptions } = await import('@/lib/auth')
+    const authOptions = await getAuthOptions()
     const session = await getServerSession(authOptions)
     const body = await request.json()
 
