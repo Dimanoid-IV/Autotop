@@ -4,6 +4,10 @@ import { Footer } from '@/components/Footer'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { BusinessDetails } from '@/components/BusinessDetails'
 
+export const dynamic = 'force-dynamic'
+export const dynamicParams = true
+export const revalidate = 0
+
 export default async function BusinessPage({
   params,
 }: {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
+export const revalidate = 0
 
 export async function GET(
   request: NextRequest,
@@ -9,6 +10,16 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+    
+    // Проверяем наличие DATABASE_URL перед импортом Prisma
+    if (!process.env.DATABASE_URL) {
+      console.error('DATABASE_URL is not set')
+      return NextResponse.json(
+        { error: 'Database connection not configured' },
+        { status: 500 }
+      )
+    }
+
     const { prisma } = await import('@/lib/prisma')
     const business = await prisma.business.findUnique({
       where: { id },
