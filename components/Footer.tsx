@@ -40,7 +40,7 @@ export function Footer() {
           <div>
             <h4 className="text-lg font-semibold mb-4">{t('contacts')}</h4>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li>Email: info@autotop.ee</li>
+              <li>Email: veox.info@gmail.com</li>
               <li>Phone: +372 123 4567</li>
             </ul>
           </div>
