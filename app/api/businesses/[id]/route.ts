@@ -62,6 +62,7 @@ export async function GET(
     })
 
     if (!business) {
+      console.error(`Business with id ${id} not found in database`)
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 

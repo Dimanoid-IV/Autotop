@@ -31,10 +31,16 @@ export default async function BusinessPage({
     )
 
     if (!response.ok) {
+      console.error(`Business not found: ${id}, status: ${response.status}`)
       notFound()
     }
 
     const business = await response.json()
+    
+    if (!business || !business.id) {
+      console.error(`Invalid business data for id: ${id}`)
+      notFound()
+    }
 
     return (
       <div className="min-h-screen flex flex-col">
