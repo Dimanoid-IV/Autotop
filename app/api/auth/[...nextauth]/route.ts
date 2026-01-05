@@ -16,14 +16,21 @@ async function getHandler() {
     const NextAuth = (await import('next-auth')).default
     const { getAuthOptions } = await import('@/lib/auth')
     const authOptions = await getAuthOptions()
-    return NextAuth(authOptions)
+    const handler = NextAuth(authOptions)
+    
+    // NextAuth v4 возвращает объект с методами GET и POST для App Router
+    return handler
   } catch (error) {
     console.error('Failed to initialize NextAuth:', error)
-    // Возвращаем функцию-заглушку, которая всегда возвращает ошибку
-    return async () => new Response(
+    // Возвращаем заглушку с методами GET и POST
+    const errorResponse = new Response(
       JSON.stringify({ error: 'Authentication service unavailable. Please check environment variables.' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
+    return {
+      GET: () => errorResponse,
+      POST: () => errorResponse,
+    } as any
   }
 }
 
@@ -64,10 +71,8 @@ export async function GET(req: NextRequest) {
       handler = await getHandler()
     }
 
-    // NextAuth v4 handler - это функция, которая принимает Request и возвращает Response
-    // В App Router NextAuth автоматически обрабатывает NextRequest
-    const response = await handler(req as any)
-    return response
+    // NextAuth v4 handler для App Router - это объект с методами GET и POST
+    return await handler.GET(req as any)
   } catch (error) {
     console.error('NextAuth GET error:', error)
     return new Response(
@@ -118,10 +123,8 @@ export async function POST(req: NextRequest) {
       handler = await getHandler()
     }
 
-    // NextAuth v4 handler - это функция, которая принимает Request и возвращает Response
-    // В App Router NextAuth автоматически обрабатывает NextRequest
-    const response = await handler(req as any)
-    return response
+    // NextAuth v4 handler для App Router - это объект с методами GET и POST
+    return await handler.POST(req as any)
   } catch (error) {
     console.error('NextAuth POST error:', error)
     return new Response(
