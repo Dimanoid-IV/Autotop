@@ -12,6 +12,11 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
+  // Отключаем предзагрузку страниц для несуществующих маршрутов
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
 }
 
 module.exports = withNextIntl(nextConfig)

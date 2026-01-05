@@ -11,17 +11,25 @@ export async function GET() {
     }
 
     const { prisma } = await import('@/lib/prisma')
+    
+    // Дополнительная проверка на доступность Prisma
+    if (!prisma) {
+      console.error('Prisma Client is not available')
+      return NextResponse.json([], { status: 200 })
+    }
+
     const categories = await prisma.category.findMany({
       orderBy: { nameEt: 'asc' },
     })
 
-    return NextResponse.json(categories)
+    return NextResponse.json(categories || [], { status: 200 })
   } catch (error) {
     console.error('Error fetching categories:', error)
     if (error instanceof Error) {
       console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
     }
-    // Return empty array instead of error for better UX
+    // Всегда возвращаем пустой массив вместо ошибки
     return NextResponse.json([], { status: 200 })
   }
 }
