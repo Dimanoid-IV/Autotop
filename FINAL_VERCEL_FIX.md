@@ -21,23 +21,41 @@
 
 ## Критически важно для Vercel
 
-### 1. Очистите Build Cache
-1. Зайдите в Settings → General
-2. Найдите "Clear Build Cache"
-3. Нажмите "Clear"
-4. **ОБЯЗАТЕЛЬНО!** Это критично!
+### 1. Переменные окружения (ПРОВЕРЬТЕ ПЕРВЫМ ДЕЛОМ!)
+Зайдите в Settings → Environment Variables и убедитесь, что установлены:
+- ✅ `NEXTAUTH_URL` = `https://your-app.vercel.app` (замените на ваш реальный URL)
+- ✅ `NEXTAUTH_SECRET` = (сгенерированный ключ, см. GENERATE_SECRET.md)
+- ✅ `DATABASE_URL` = (строка подключения из Neon, см. GET_DATABASE_URL.md)
 
-### 2. Переменные окружения (ПРОВЕРЬТЕ!)
-Убедитесь, что установлены:
-- ✅ `NEXTAUTH_URL` = `https://your-app.vercel.app`
-- ✅ `NEXTAUTH_SECRET` = (сгенерированный ключ)
-- ✅ `DATABASE_URL` = (строка подключения из Neon)
+**ВАЖНО:** Убедитесь, что переменные установлены для всех окружений (Production, Preview, Development)
 
-### 3. Перезапустите деплой
-После очистки кеша и проверки переменных:
-1. Deployments → выберите последний деплой
-2. Нажмите "Redeploy"
-3. Или сделайте новый commit и push
+### 2. Очистка кеша (через новый деплой)
+В Vercel нет прямой опции "Clear Build Cache" в UI. Кеш очищается автоматически при новом деплое.
+
+**Способ 1: Redeploy**
+1. Зайдите в Deployments
+2. Найдите последний деплой
+3. Нажмите на три точки (⋯) рядом с деплоем
+4. Выберите "Redeploy"
+5. Отметьте "Use existing Build Cache" = **НЕТ** (снимите галочку, если есть)
+
+**Способ 2: Новый commit (рекомендуется)**
+1. Сделайте небольшое изменение в коде (например, добавьте комментарий)
+2. Закоммитьте и запушьте:
+   ```bash
+   git commit --allow-empty -m "Force rebuild on Vercel"
+   git push origin main
+   ```
+3. Vercel автоматически запустит новый деплой с очисткой кеша
+
+### 3. Проверьте логи сборки
+После деплоя:
+1. Зайдите в Deployments → выберите деплой
+2. Откройте "Build Logs"
+3. Ищите ошибки, особенно:
+   - `DATABASE_URL is not set`
+   - `Failed to collect page data`
+   - `Prisma Client initialization error`
 
 ## Если все еще не работает
 
@@ -47,15 +65,17 @@
 - Отсутствующие переменные окружения
 - Ошибки инициализации Prisma
 
-### Вариант 2: Временное отключение Prisma генерации
-Если проблема в Prisma Client, попробуйте добавить в `package.json`:
+### Вариант 2: Убедитесь, что Prisma генерируется
+Проверьте, что в `package.json` есть скрипт для генерации Prisma:
 ```json
 {
   "scripts": {
-    "build": "prisma generate && next build"
+    "postinstall": "prisma generate"
   }
 }
 ```
+
+Vercel автоматически запускает `postinstall` после `npm install`, что гарантирует генерацию Prisma Client.
 
 ### Вариант 3: Проверьте версию Next.js
 Убедитесь, что используется Next.js 14.2.x:
