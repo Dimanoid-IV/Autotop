@@ -10,31 +10,93 @@
 1. В списке проектов найдите проект **autotop-estonia** (или создайте новый)
 2. Нажмите на название проекта
 
-## Шаг 3: Получите Connection String
+## Шаг 3: Где найти Connection String
 
-1. В панели проекта найдите раздел **Connection Details** или **Connection String**
-2. Вы увидите строку подключения в формате:
-   ```
-   postgresql://username:password@host.neon.tech/database?sslmode=require
-   ```
+В Neon Console строка подключения может находиться в разных местах в зависимости от версии интерфейса:
 
-### Альтернативный способ:
+### Вариант 1: Dashboard проекта
 
-1. В боковом меню найдите **Connection Details** или **Settings**
-2. Найдите раздел **Connection String** или **Connection URI**
-3. Нажмите кнопку **Copy** или **Show** для отображения строки
+1. После открытия проекта вы увидите **Dashboard**
+2. Найдите карточку или раздел с названием:
+   - **"Connection string"**
+   - **"Connect"**
+   - **"Connection Details"**
+   - **"Connection URI"**
+   - **"Database"**
+3. Нажмите на этот раздел
+4. Скопируйте строку подключения
 
-## Шаг 4: Скопируйте строку подключения
+### Вариант 2: Боковое меню
+
+1. В левом боковом меню найдите:
+   - **"Connection Details"**
+   - **"Settings"** → **"Connection"**
+   - **"Database"** → **"Connection"**
+   - **"Connect"**
+2. Откройте этот раздел
+3. Найдите строку подключения и скопируйте её
+
+### Вариант 3: Кнопка "Connect" или "Copy"
+
+1. На главной странице проекта найдите большую кнопку:
+   - **"Connect"**
+   - **"Copy connection string"**
+   - **"Get connection string"**
+2. Нажмите на неё
+3. Выберите формат: **"Connection string"** или **"URI"**
+4. Скопируйте строку
+
+### Вариант 4: Через SQL Editor
+
+1. В боковом меню найдите **"SQL Editor"** или **"Query"**
+2. Откройте его
+3. В верхней части может быть кнопка **"Connection string"** или **"Copy connection"**
+4. Нажмите на неё и скопируйте
+
+### Вариант 5: Settings → Connection
+
+1. В боковом меню найдите **"Settings"**
+2. Откройте **"Settings"**
+3. Найдите вкладку или раздел:
+   - **"Connection"**
+   - **"Database"**
+   - **"Connection Details"**
+4. Там будет строка подключения
+
+## Шаг 4: Формат строки подключения
 
 Строка будет выглядеть примерно так:
+
 ```
-postgresql://neondb_owner:your_password@ep-tiny-base-ae1jc3sm-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require
+postgresql://neondb_owner:password@ep-xxx-xxx-pooler.region.aws.neon.tech/neondb?sslmode=require
 ```
 
-**Важно**: 
-- Строка содержит пароль - храните её в безопасности
-- Не коммитьте её в Git
-- Используйте только в `.env` файле и на Vercel
+Или с дополнительными параметрами:
+
+```
+postgresql://neondb_owner:password@ep-xxx-xxx-pooler.region.aws.neon.tech/neondb?channel_binding=require&sslmode=require
+```
+
+## Если ничего не помогает
+
+### Способ 1: Создайте новый проект
+
+1. В Neon Console нажмите **"Create Project"** или **"New Project"**
+2. Заполните:
+   - **Project Name**: `autotop-estonia`
+   - **Region**: выберите регион (например, `us-east-2`)
+   - **PostgreSQL Version**: выберите последнюю версию
+3. После создания проекта строка подключения обычно отображается сразу на главной странице
+
+### Способ 2: Используйте API
+
+Если у вас есть доступ к Neon API, можно получить connection string через API, но это сложнее.
+
+### Способ 3: Проверьте документацию Neon
+
+1. Зайдите на https://neon.tech/docs
+2. Найдите раздел **"Connect"** или **"Connection"**
+3. Там будут актуальные инструкции
 
 ## Шаг 5: Используйте на Vercel
 
@@ -47,60 +109,32 @@ postgresql://neondb_owner:your_password@ep-tiny-base-ae1jc3sm-pooler.us-east-2.a
    - Выберите окружения: Production, Preview, Development
 5. Сохраните
 
-## Если у вас нет проекта в Neon
-
-### Создание нового проекта:
-
-1. Зайдите на https://console.neon.tech
-2. Нажмите **Create Project**
-3. Заполните:
-   - **Project Name**: `autotop-estonia` (или любое другое имя)
-   - **Region**: выберите ближайший регион (например, `us-east-2`)
-   - **PostgreSQL Version**: выберите последнюю версию (обычно 15 или 16)
-4. Нажмите **Create Project**
-5. После создания проекта, скопируйте Connection String из раздела **Connection Details**
-
-## Если забыли пароль
-
-Если вы не помните пароль от базы данных:
-
-1. В Neon Console перейдите в настройки проекта
-2. Найдите раздел **Database** или **Connection**
-3. Вы можете:
-   - Сбросить пароль (если доступно)
-   - Создать новый branch с новым паролем
-   - Создать новый проект
-
-## Проверка подключения
-
-После добавления `DATABASE_URL` на Vercel:
-
-1. Перезапустите деплой
-2. Проверьте логи сборки - не должно быть ошибок подключения к базе данных
-3. Проверьте логи runtime - приложение должно успешно подключаться к базе
-
-## Формат строки подключения
-
-Стандартный формат для Neon:
-```
-postgresql://username:password@host.neon.tech/database?sslmode=require
-```
-
-Или с дополнительными параметрами:
-```
-postgresql://username:password@host.neon.tech/database?channel_binding=require&sslmode=require
-```
-
-## Важно
+## Важные моменты
 
 - ✅ Используйте **pooler connection string** для продакшена (содержит `-pooler` в хосте)
-- ✅ Используйте **direct connection string** только для локальной разработки
 - ✅ Всегда используйте `sslmode=require` для безопасности
 - ❌ Не коммитьте строку подключения в Git
 - ❌ Не делитесь строкой подключения публично
 
-## Дополнительная информация
+## Альтернатива: Если не можете найти connection string
 
-- Документация Neon: https://neon.tech/docs
-- Руководство по подключению: https://neon.tech/docs/connect/connect-from-any-app
+Если вы не можете найти connection string в интерфейсе, но у вас есть доступ к проекту:
 
+1. Попробуйте создать новый branch в проекте
+2. Или создайте новый проект в Neon
+3. При создании нового проекта connection string обычно показывается сразу
+
+## Скриншоты (примерное расположение)
+
+Connection string обычно находится:
+- На главной странице проекта (Dashboard)
+- В разделе Settings → Connection
+- В боковом меню как отдельный пункт "Connection Details"
+- В виде кнопки "Connect" на главной странице
+
+## Дополнительная помощь
+
+Если вы все еще не можете найти connection string:
+1. Проверьте документацию Neon: https://neon.tech/docs/connect/connect-from-any-app
+2. Создайте новый проект - при создании connection string показывается автоматически
+3. Обратитесь в поддержку Neon через их сайт
