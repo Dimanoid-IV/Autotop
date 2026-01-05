@@ -16,9 +16,10 @@ export default async function BusinessPage({
   const { id, locale } = await params
 
   try {
-    // Используем относительный путь для API запроса
+    // Используем абсолютный URL для серверного компонента
     const baseUrl = process.env.NEXTAUTH_URL || 
-      (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+    
     const response = await fetch(
       `${baseUrl}/api/businesses/${id}`,
       { 
