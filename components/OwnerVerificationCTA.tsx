@@ -35,19 +35,25 @@ export function OwnerVerificationCTA({
           </h3>
           <p className="text-gray-700 mb-4">{t('ownerCTADesc')}</p>
           {isOwner ? (
-            <Link
-              href={`/businesses/${business.id}/verify`}
+            <button
+              onClick={() => {
+                // TODO: Implement business verification
+                alert('Business verification feature coming soon')
+              }}
               className="inline-block px-6 py-2 bg-accent text-white rounded-md hover:bg-accent-dark transition-colors"
             >
               Verify Business
-            </Link>
+            </button>
           ) : (
-            <Link
-              href={`/businesses/${business.id}/claim`}
+            <button
+              onClick={() => {
+                // TODO: Implement business claim
+                alert('Business claim feature coming soon')
+              }}
               className="inline-block px-6 py-2 bg-accent text-white rounded-md hover:bg-accent-dark transition-colors"
             >
               Claim Business
-            </Link>
+            </button>
           )}
         </div>
       </div>
