@@ -71,23 +71,31 @@ function errorResponse(message: string) {
 }
 
 // Адаптер для преобразования NextRequest в формат, который понимает NextAuth
-function adaptRequest(req: NextRequest): Request {
-  // Создаем новый Request с правильным URL
+// NextAuth v4 в App Router должен работать напрямую с NextRequest
+// Но для совместимости создаем стандартный Request
+async function adaptRequest(req: NextRequest): Promise<Request> {
+  // Клонируем запрос для NextAuth
   const url = new URL(req.url)
-  // NextAuth ожидает query параметры в определенном формате
-  // Извлекаем параметры из пути [...nextauth]
-  const pathParts = url.pathname.split('/')
-  const nextauthIndex = pathParts.indexOf('nextauth')
-  if (nextauthIndex !== -1 && pathParts[nextauthIndex + 1]) {
-    // Добавляем параметр nextauth в query
-    url.searchParams.set('nextauth', pathParts.slice(nextauthIndex + 1).join('/'))
+  
+  // Создаем новый Request объект
+  const requestInit: RequestInit = {
+    method: req.method,
+    headers: new Headers(req.headers),
   }
   
-  return new Request(url.toString(), {
-    method: req.method,
-    headers: req.headers,
-    body: req.body,
-  })
+  // Добавляем body для POST запросов
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    try {
+      const body = await req.text()
+      if (body) {
+        requestInit.body = body
+      }
+    } catch (e) {
+      // Игнорируем ошибки чтения body
+    }
+  }
+  
+  return new Request(url.toString(), requestInit)
 }
 
 export async function GET(req: NextRequest) {
@@ -99,7 +107,7 @@ export async function GET(req: NextRequest) {
 
     const { GET: handlerGET } = await getHandlers()
     // Преобразуем NextRequest в Request для NextAuth
-    const adaptedReq = adaptRequest(req)
+    const adaptedReq = await adaptRequest(req)
     return await handlerGET(adaptedReq)
   } catch (error) {
     console.error('NextAuth GET error:', error)
@@ -118,7 +126,7 @@ export async function POST(req: NextRequest) {
 
     const { POST: handlerPOST } = await getHandlers()
     // Преобразуем NextRequest в Request для NextAuth
-    const adaptedReq = adaptRequest(req)
+    const adaptedReq = await adaptRequest(req)
     return await handlerPOST(adaptedReq)
   } catch (error) {
     console.error('NextAuth POST error:', error)
