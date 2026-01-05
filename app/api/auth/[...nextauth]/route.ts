@@ -1,3 +1,5 @@
+import { NextRequest } from 'next/server'
+
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
@@ -21,22 +23,33 @@ async function getHandlers() {
   const { getAuthOptions } = await import('@/lib/auth')
   const authOptions = await getAuthOptions()
   
-  // NextAuth v4 в App Router возвращает объект с методами GET и POST
+  // NextAuth v4 в App Router - используем правильный синтаксис экспорта
   const handler = NextAuth(authOptions)
   
-  // Проверяем формат handler и извлекаем GET и POST
-  if (handler && typeof handler === 'object' && 'GET' in handler && 'POST' in handler) {
-    handlers = {
-      GET: handler.GET,
-      POST: handler.POST,
+  // NextAuth v4 возвращает объект с handlers
+  if (handler && typeof handler === 'object') {
+    if ('handlers' in handler && handler.handlers) {
+      // Если есть handlers объект
+      handlers = {
+        GET: handler.handlers.GET,
+        POST: handler.handlers.POST,
+      }
+    } else if ('GET' in handler && 'POST' in handler) {
+      // Если методы GET и POST напрямую в handler
+      handlers = {
+        GET: handler.GET,
+        POST: handler.POST,
+      }
+    } else if (typeof handler === 'function') {
+      // Если handler - функция (старый формат)
+      handlers = {
+        GET: handler,
+        POST: handler,
+      }
     }
-  } else if (handler && typeof handler === 'function') {
-    // Если handler - функция, оборачиваем её в объект
-    handlers = {
-      GET: handler,
-      POST: handler,
-    }
-  } else {
+  }
+  
+  if (!handlers) {
     throw new Error('NextAuth handler is not in expected format')
   }
   
@@ -57,7 +70,27 @@ function errorResponse(message: string) {
   )
 }
 
-export async function GET(req: Request) {
+// Адаптер для преобразования NextRequest в формат, который понимает NextAuth
+function adaptRequest(req: NextRequest): Request {
+  // Создаем новый Request с правильным URL
+  const url = new URL(req.url)
+  // NextAuth ожидает query параметры в определенном формате
+  // Извлекаем параметры из пути [...nextauth]
+  const pathParts = url.pathname.split('/')
+  const nextauthIndex = pathParts.indexOf('nextauth')
+  if (nextauthIndex !== -1 && pathParts[nextauthIndex + 1]) {
+    // Добавляем параметр nextauth в query
+    url.searchParams.set('nextauth', pathParts.slice(nextauthIndex + 1).join('/'))
+  }
+  
+  return new Request(url.toString(), {
+    method: req.method,
+    headers: req.headers,
+    body: req.body,
+  })
+}
+
+export async function GET(req: NextRequest) {
   try {
     // Проверяем переменные окружения
     if (!process.env.NEXTAUTH_SECRET || !process.env.DATABASE_URL) {
@@ -65,7 +98,9 @@ export async function GET(req: Request) {
     }
 
     const { GET: handlerGET } = await getHandlers()
-    return await handlerGET(req)
+    // Преобразуем NextRequest в Request для NextAuth
+    const adaptedReq = adaptRequest(req)
+    return await handlerGET(adaptedReq)
   } catch (error) {
     console.error('NextAuth GET error:', error)
     return errorResponse(
@@ -74,7 +109,7 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     // Проверяем переменные окружения
     if (!process.env.NEXTAUTH_SECRET || !process.env.DATABASE_URL) {
@@ -82,7 +117,9 @@ export async function POST(req: Request) {
     }
 
     const { POST: handlerPOST } = await getHandlers()
-    return await handlerPOST(req)
+    // Преобразуем NextRequest в Request для NextAuth
+    const adaptedReq = adaptRequest(req)
+    return await handlerPOST(adaptedReq)
   } catch (error) {
     console.error('NextAuth POST error:', error)
     return errorResponse(
