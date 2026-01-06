@@ -74,10 +74,12 @@ async function adaptRequestForNextAuth(
   
   const res: any = {
     status: (code: number) => {
+      console.log('NextAuth res.status called with:', code)
       statusCode = code
       return res
     },
     json: (data: any) => {
+      console.log('NextAuth res.json called with:', typeof data, data)
       // Убеждаемся, что данные правильно сериализуются в JSON
       if (data !== null && data !== undefined) {
         try {
@@ -93,6 +95,7 @@ async function adaptRequestForNextAuth(
       return res
     },
     send: (data: any) => {
+      console.log('NextAuth res.send called with:', typeof data, data)
       // Если данные - объект, сериализуем в JSON
       if (typeof data === 'object' && data !== null) {
         try {
@@ -107,11 +110,13 @@ async function adaptRequestForNextAuth(
       return res
     },
     redirect: (url: string) => {
+      console.log('NextAuth res.redirect called with:', url)
       redirectUrl = url
       statusCode = 302
       return res
     },
     setHeader: (name: string, value: string) => {
+      console.log('NextAuth res.setHeader called with:', name, value)
       headers[name] = value
       return res
     },
@@ -196,11 +201,23 @@ export async function GET(
     }
     
     // NextAuth v4 handler вызывается как функция с адаптированными req и res
+    console.log('NextAuth: Calling handler with adaptedReq:', {
+      method: adaptedReq.method,
+      url: adaptedReq.url,
+      query: adaptedReq.query,
+      hasBody: !!adaptedReq.body,
+      bodyType: typeof adaptedReq.body
+    })
+    
     let result: any
     try {
       result = await handler(adaptedReq, res)
+      console.log('NextAuth: Handler returned:', typeof result, result instanceof Response ? 'Response' : 'other')
     } catch (handlerError) {
       console.error('NextAuth: Handler execution error:', handlerError)
+      if (handlerError instanceof Error) {
+        console.error('NextAuth: Error stack:', handlerError.stack)
+      }
       return errorResponse(
         handlerError instanceof Error ? handlerError.message : 'Handler execution failed'
       )
@@ -208,11 +225,13 @@ export async function GET(
     
     // Если handler вернул Response напрямую, используем его
     if (result instanceof Response) {
+      console.log('NextAuth: Returning Response from handler')
       return result
     }
     
     // Иначе возвращаем ответ, созданный NextAuth через методы res
     try {
+      console.log('NextAuth: Getting response from res object')
       const response = (res as any).__getResponse()
       
       // Проверяем, что ответ был создан
@@ -221,9 +240,13 @@ export async function GET(
         return errorResponse('NextAuth handler did not return a response')
       }
       
+      console.log('NextAuth: Returning response with status:', response.status)
       return response
     } catch (responseError) {
       console.error('NextAuth: Failed to get response:', responseError)
+      if (responseError instanceof Error) {
+        console.error('NextAuth: Response error stack:', responseError.stack)
+      }
       return errorResponse(
         responseError instanceof Error ? responseError.message : 'Failed to get response'
       )
@@ -323,11 +346,23 @@ export async function POST(
     }
     
     // NextAuth v4 handler вызывается как функция с адаптированными req и res
+    console.log('NextAuth: Calling handler with adaptedReq:', {
+      method: adaptedReq.method,
+      url: adaptedReq.url,
+      query: adaptedReq.query,
+      hasBody: !!adaptedReq.body,
+      bodyType: typeof adaptedReq.body
+    })
+    
     let result: any
     try {
       result = await handler(adaptedReq, res)
+      console.log('NextAuth: Handler returned:', typeof result, result instanceof Response ? 'Response' : 'other')
     } catch (handlerError) {
       console.error('NextAuth: Handler execution error:', handlerError)
+      if (handlerError instanceof Error) {
+        console.error('NextAuth: Error stack:', handlerError.stack)
+      }
       return errorResponse(
         handlerError instanceof Error ? handlerError.message : 'Handler execution failed'
       )
@@ -335,11 +370,13 @@ export async function POST(
     
     // Если handler вернул Response напрямую, используем его
     if (result instanceof Response) {
+      console.log('NextAuth: Returning Response from handler')
       return result
     }
     
     // Иначе возвращаем ответ, созданный NextAuth через методы res
     try {
+      console.log('NextAuth: Getting response from res object')
       const response = (res as any).__getResponse()
       
       // Проверяем, что ответ был создан
@@ -348,9 +385,13 @@ export async function POST(
         return errorResponse('NextAuth handler did not return a response')
       }
       
+      console.log('NextAuth: Returning response with status:', response.status)
       return response
     } catch (responseError) {
       console.error('NextAuth: Failed to get response:', responseError)
+      if (responseError instanceof Error) {
+        console.error('NextAuth: Response error stack:', responseError.stack)
+      }
       return errorResponse(
         responseError instanceof Error ? responseError.message : 'Failed to get response'
       )
