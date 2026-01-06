@@ -44,11 +44,11 @@ function errorResponse(message: string) {
 }
 
 // Адаптер для преобразования NextRequest в формат, который понимает NextAuth v4
-// NextAuth v4 ожидает объект с query параметрами в формате Pages Router
+// NextAuth v4 ожидает объекты req и res в формате Pages Router
 async function adaptRequestForNextAuth(
   req: NextRequest, 
   params: { nextauth?: string[] } | Promise<{ nextauth?: string[] }>
-) {
+): Promise<{ req: any; res: any }> {
   const url = new URL(req.url)
   
   // Параметры могут быть промисом в новых версиях Next.js
@@ -66,8 +66,51 @@ async function adaptRequestForNextAuth(
     }
   }
   
+  // Создаем объект ответа, который ожидает NextAuth v4
+  let statusCode = 200
+  const headers: Record<string, string> = {}
+  let responseBody: any = null
+  let redirectUrl: string | null = null
+  
+  const res: any = {
+    status: (code: number) => {
+      statusCode = code
+      return res
+    },
+    json: (data: any) => {
+      responseBody = JSON.stringify(data)
+      headers['Content-Type'] = 'application/json'
+      return res
+    },
+    send: (data: any) => {
+      responseBody = data
+      return res
+    },
+    redirect: (url: string) => {
+      redirectUrl = url
+      statusCode = 302
+      return res
+    },
+    setHeader: (name: string, value: string) => {
+      headers[name] = value
+      return res
+    },
+    getHeader: (name: string) => {
+      return headers[name]
+    },
+    // Сохраняем функцию для получения финального ответа
+    __getResponse: () => {
+      if (redirectUrl) {
+        return Response.redirect(redirectUrl, statusCode)
+      }
+      return new Response(responseBody, {
+        status: statusCode,
+        headers,
+      })
+    },
+  }
+  
   // Создаем объект запроса в формате, который ожидает NextAuth v4
-  // NextAuth v4 ожидает объект с методом, query, headers и body
   const adaptedReq: any = {
     method: req.method,
     headers: Object.fromEntries(req.headers.entries()),
@@ -75,9 +118,10 @@ async function adaptRequestForNextAuth(
       nextauth: nextauthParams
     },
     url: url.toString(),
+    body: undefined,
   }
   
-  return adaptedReq
+  return { req: adaptedReq, res }
 }
 
 export async function GET(
@@ -95,10 +139,13 @@ export async function GET(
     }
     
     // Адаптируем запрос для NextAuth v4
-    const adaptedReq = await adaptRequestForNextAuth(req, context.params)
+    const { req: adaptedReq, res } = await adaptRequestForNextAuth(req, context.params)
     
-    // NextAuth v4 handler вызывается как функция с адаптированным запросом
-    return await handler(adaptedReq)
+    // NextAuth v4 handler вызывается как функция с адаптированными req и res
+    await handler(adaptedReq, res)
+    
+    // Возвращаем ответ, созданный NextAuth через методы res
+    return (res as any).__getResponse()
   } catch (error) {
     console.error('NextAuth GET error:', error)
     return errorResponse(
@@ -125,11 +172,14 @@ export async function POST(
     const body = await req.text()
     
     // Адаптируем запрос для NextAuth v4
-    const adaptedReq = await adaptRequestForNextAuth(req, context.params)
+    const { req: adaptedReq, res } = await adaptRequestForNextAuth(req, context.params)
     adaptedReq.body = body
     
-    // NextAuth v4 handler вызывается как функция с адаптированным запросом
-    return await handler(adaptedReq)
+    // NextAuth v4 handler вызывается как функция с адаптированными req и res
+    await handler(adaptedReq, res)
+    
+    // Возвращаем ответ, созданный NextAuth через методы res
+    return (res as any).__getResponse()
   } catch (error) {
     console.error('NextAuth POST error:', error)
     return errorResponse(
