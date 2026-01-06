@@ -155,18 +155,45 @@ export async function GET(
   try {
     // Проверяем переменные окружения
     if (!process.env.NEXTAUTH_SECRET || !process.env.DATABASE_URL) {
+      console.error('NextAuth: Missing environment variables')
       return errorResponse('Required environment variables are not set')
     }
 
     if (!handler) {
-      handler = await getHandler()
+      try {
+        handler = await getHandler()
+      } catch (handlerError) {
+        console.error('NextAuth: Failed to initialize handler:', handlerError)
+        return errorResponse(
+          handlerError instanceof Error ? handlerError.message : 'Failed to initialize NextAuth handler'
+        )
+      }
     }
     
     // Адаптируем запрос для NextAuth v4
-    const { req: adaptedReq, res } = await adaptRequestForNextAuth(req, context.params)
+    let adaptedReq: any
+    let res: any
+    try {
+      const adapted = await adaptRequestForNextAuth(req, context.params)
+      adaptedReq = adapted.req
+      res = adapted.res
+    } catch (adaptError) {
+      console.error('NextAuth: Failed to adapt request:', adaptError)
+      return errorResponse(
+        adaptError instanceof Error ? adaptError.message : 'Failed to adapt request'
+      )
+    }
     
     // NextAuth v4 handler вызывается как функция с адаптированными req и res
-    const result = await handler(adaptedReq, res)
+    let result: any
+    try {
+      result = await handler(adaptedReq, res)
+    } catch (handlerError) {
+      console.error('NextAuth: Handler execution error:', handlerError)
+      return errorResponse(
+        handlerError instanceof Error ? handlerError.message : 'Handler execution failed'
+      )
+    }
     
     // Если handler вернул Response напрямую, используем его
     if (result instanceof Response) {
@@ -174,17 +201,27 @@ export async function GET(
     }
     
     // Иначе возвращаем ответ, созданный NextAuth через методы res
-    const response = (res as any).__getResponse()
-    
-    // Проверяем, что ответ был создан
-    if (!response) {
-      // Если ответ не был создан, возвращаем ошибку
-      return errorResponse('NextAuth handler did not return a response')
+    try {
+      const response = (res as any).__getResponse()
+      
+      // Проверяем, что ответ был создан
+      if (!response) {
+        console.error('NextAuth: Handler did not create a response')
+        return errorResponse('NextAuth handler did not return a response')
+      }
+      
+      return response
+    } catch (responseError) {
+      console.error('NextAuth: Failed to get response:', responseError)
+      return errorResponse(
+        responseError instanceof Error ? responseError.message : 'Failed to get response'
+      )
     }
-    
-    return response
   } catch (error) {
     console.error('NextAuth GET error:', error)
+    if (error instanceof Error) {
+      console.error('Error stack:', error.stack)
+    }
     return errorResponse(
       error instanceof Error ? error.message : 'Unknown error'
     )
@@ -198,22 +235,55 @@ export async function POST(
   try {
     // Проверяем переменные окружения
     if (!process.env.NEXTAUTH_SECRET || !process.env.DATABASE_URL) {
+      console.error('NextAuth: Missing environment variables')
       return errorResponse('Required environment variables are not set')
     }
 
     if (!handler) {
-      handler = await getHandler()
+      try {
+        handler = await getHandler()
+      } catch (handlerError) {
+        console.error('NextAuth: Failed to initialize handler:', handlerError)
+        return errorResponse(
+          handlerError instanceof Error ? handlerError.message : 'Failed to initialize NextAuth handler'
+        )
+      }
     }
     
     // Читаем body для POST запросов
-    const body = await req.text()
+    let body: string
+    try {
+      body = await req.text()
+    } catch (bodyError) {
+      console.error('NextAuth: Failed to read request body:', bodyError)
+      body = ''
+    }
     
     // Адаптируем запрос для NextAuth v4
-    const { req: adaptedReq, res } = await adaptRequestForNextAuth(req, context.params)
-    adaptedReq.body = body
+    let adaptedReq: any
+    let res: any
+    try {
+      const adapted = await adaptRequestForNextAuth(req, context.params)
+      adaptedReq = adapted.req
+      res = adapted.res
+      adaptedReq.body = body
+    } catch (adaptError) {
+      console.error('NextAuth: Failed to adapt request:', adaptError)
+      return errorResponse(
+        adaptError instanceof Error ? adaptError.message : 'Failed to adapt request'
+      )
+    }
     
     // NextAuth v4 handler вызывается как функция с адаптированными req и res
-    const result = await handler(adaptedReq, res)
+    let result: any
+    try {
+      result = await handler(adaptedReq, res)
+    } catch (handlerError) {
+      console.error('NextAuth: Handler execution error:', handlerError)
+      return errorResponse(
+        handlerError instanceof Error ? handlerError.message : 'Handler execution failed'
+      )
+    }
     
     // Если handler вернул Response напрямую, используем его
     if (result instanceof Response) {
@@ -221,17 +291,27 @@ export async function POST(
     }
     
     // Иначе возвращаем ответ, созданный NextAuth через методы res
-    const response = (res as any).__getResponse()
-    
-    // Проверяем, что ответ был создан
-    if (!response) {
-      // Если ответ не был создан, возвращаем ошибку
-      return errorResponse('NextAuth handler did not return a response')
+    try {
+      const response = (res as any).__getResponse()
+      
+      // Проверяем, что ответ был создан
+      if (!response) {
+        console.error('NextAuth: Handler did not create a response')
+        return errorResponse('NextAuth handler did not return a response')
+      }
+      
+      return response
+    } catch (responseError) {
+      console.error('NextAuth: Failed to get response:', responseError)
+      return errorResponse(
+        responseError instanceof Error ? responseError.message : 'Failed to get response'
+      )
     }
-    
-    return response
   } catch (error) {
     console.error('NextAuth POST error:', error)
+    if (error instanceof Error) {
+      console.error('Error stack:', error.stack)
+    }
     return errorResponse(
       error instanceof Error ? error.message : 'Unknown error'
     )
