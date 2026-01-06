@@ -279,24 +279,47 @@ export async function POST(
     let body: string
     try {
       body = await req.text()
-      // Устанавливаем body в адаптированный запрос
-      adaptedReq.body = body
       
-      // Также добавляем body как Buffer для совместимости
+      // Определяем Content-Type
+      const contentType = req.headers.get('content-type') || ''
+      
+      // Парсим body в зависимости от Content-Type
+      if (contentType.includes('application/json')) {
+        // Если JSON, парсим и сохраняем как объект
+        try {
+          adaptedReq.body = body ? JSON.parse(body) : {}
+        } catch (e) {
+          console.error('NextAuth: Failed to parse JSON body:', e)
+          adaptedReq.body = {}
+        }
+      } else if (contentType.includes('application/x-www-form-urlencoded')) {
+        // Если form data, парсим в объект
+        const params = new URLSearchParams(body)
+        adaptedReq.body = Object.fromEntries(params.entries())
+      } else {
+        // По умолчанию сохраняем как строку
+        adaptedReq.body = body
+      }
+      
+      // Также сохраняем raw body для совместимости
+      adaptedReq.rawBody = body
       if (body) {
         adaptedReq.bodyBuffer = Buffer.from(body)
       }
       
-      // Логируем для отладки (только первые 100 символов)
+      // Логируем для отладки
+      console.log('NextAuth POST - Content-Type:', contentType)
       console.log('NextAuth POST body length:', body.length)
-      if (body.length > 0) {
+      if (body.length > 0 && body.length < 200) {
+        console.log('NextAuth POST body:', body)
+      } else if (body.length > 0) {
         console.log('NextAuth POST body preview:', body.substring(0, 100))
       }
-    } catch (adaptError) {
-      console.error('NextAuth: Failed to adapt request:', adaptError)
-      return errorResponse(
-        adaptError instanceof Error ? adaptError.message : 'Failed to adapt request'
-      )
+      console.log('NextAuth POST parsed body:', adaptedReq.body)
+    } catch (bodyError) {
+      console.error('NextAuth: Failed to read request body:', bodyError)
+      adaptedReq.body = {}
+      adaptedReq.rawBody = ''
     }
     
     // NextAuth v4 handler вызывается как функция с адаптированными req и res
