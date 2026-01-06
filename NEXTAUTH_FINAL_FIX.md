@@ -52,3 +52,4 @@ DOM ошибки (HierarchyRequestError, NotFoundError) могут быть св
 - Проблемами hydration (должны исчезнуть после исправления NextAuth)
 - Конфликтом layouts (проверьте, что только один layout содержит `<html>` и `<body>`)
 
+

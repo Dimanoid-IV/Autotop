@@ -153,3 +153,4 @@ https://your-app.vercel.app/api/businesses
 - Что показывают Function Logs на Vercel?
 - Есть ли данные в базе?
 
+

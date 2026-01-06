@@ -52,3 +52,4 @@ https://autotop.vercel.app/api/businesses/[id]
 - ✅ База данных содержит записи в таблице `Business`
 - ✅ API `/api/businesses/[id]` работает правильно
 
+

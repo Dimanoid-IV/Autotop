@@ -127,3 +127,4 @@ https://autotop-jb6gh7ghd-dimanoid-ivs-projects.vercel.app/api/categories
 
 Проверьте логи функций `/api/cities` и `/api/categories` - там будет точная причина ошибки 500.
 
+

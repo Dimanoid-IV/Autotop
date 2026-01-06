@@ -134,11 +134,16 @@ async function adaptRequestForNextAuth(
             headers['Content-Type'] = 'application/json'
           }
         } else {
-          // Успешная аутентификация
-          redirectUrl = null
-          statusCode = 200
-          responseBody = JSON.stringify({ ok: true, url })
-          headers['Content-Type'] = 'application/json'
+          // Успешная аутентификация - НЕ конвертируем в JSON!
+          // Позволяем NextAuth обработать redirect и установить cookie
+          // Только для credentials callback возвращаем JSON
+          if (isCredentialsCallback) {
+            redirectUrl = null
+            statusCode = 200
+            responseBody = JSON.stringify({ ok: true, url })
+            headers['Content-Type'] = 'application/json'
+          }
+          // Иначе оставляем redirect как есть для установки cookie
         }
       }
       return res

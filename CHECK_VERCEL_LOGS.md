@@ -123,3 +123,4 @@ https://autotop-jb6gh7ghd-dimanoid-ivs-projects.vercel.app/api/categories
 - Скопируйте ошибки из консоли браузера
 - Проверьте, что все переменные установлены правильно
 
+

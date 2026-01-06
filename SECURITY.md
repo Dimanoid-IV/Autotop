@@ -123,3 +123,4 @@ git diff --cached | grep -i "password\|secret\|key\|token"
 - [OWASP Secrets Management](https://owasp.org/www-community/vulnerabilities/Use_of_hard-coded_cryptographic_key)
 - [12 Factor App: Config](https://12factor.net/config)
 
+

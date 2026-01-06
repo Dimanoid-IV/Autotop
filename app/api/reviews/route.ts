@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
     const { getServerSession } = await import('next-auth')
     const { getAuthOptions } = await import('@/lib/auth')
     const authOptions = await getAuthOptions()
+    // В App Router нужно передать headers из request
     const session = await getServerSession(authOptions)
 
     if (!session?.user) {

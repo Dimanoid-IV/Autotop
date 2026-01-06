@@ -66,3 +66,4 @@ GOOGLE_CLIENT_SECRET=
 - Настройка окружения: `ENV_SETUP.md`
 - Настройка базы данных: `DATABASE_SETUP.md`
 
+

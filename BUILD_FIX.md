@@ -62,3 +62,4 @@ export const POST = (req: any, res: any) => getHandler()(req, res)
 ✅ Локальная сборка проходит успешно
 ⚠️ Ошибка все еще может возникать на Vercel (требует проверки)
 
+
