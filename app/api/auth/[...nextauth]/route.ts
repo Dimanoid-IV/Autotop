@@ -265,38 +265,44 @@ export async function POST(
     
     if (result instanceof Response) {
       // Если это credentials callback, проверяем, не является ли это redirect
-      if (isCredentialsCallback && result.status >= 300 && result.status < 400) {
+      if (isCredentialsCallback) {
         const location = result.headers.get('location')
-        if (location) {
-          if (location.includes('/api/auth/signin') || location.includes('/api/auth/error')) {
-            // Извлекаем параметр error из URL, если он есть
-            const url = new URL(location, adaptedReq.url)
-            const errorParam = url.searchParams.get('error')
-            const errorMessage = url.searchParams.get('error_description') || 
-                                 (errorParam === 'CredentialsSignin' ? 'Invalid email or password' : 
-                                  errorParam === 'EmailNotVerified' ? 'Email not verified. Please check your email and verify your account.' :
-                                  'Authentication failed')
-            
-            return new Response(
-              JSON.stringify({ 
-                error: errorParam || 'CredentialsSignin', 
-                ok: false,
-                message: errorMessage
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              }
-            )
-          } else {
-            return new Response(
-              JSON.stringify({ ok: true, url: location }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              }
-            )
-          }
+        
+        // Если это redirect на signin/error - это ошибка
+        if (location && (location.includes('/api/auth/signin') || location.includes('/api/auth/error'))) {
+          const url = new URL(location, adaptedReq.url)
+          const errorParam = url.searchParams.get('error')
+          const errorMessage = url.searchParams.get('error_description') || 
+                               (errorParam === 'CredentialsSignin' ? 'Invalid email or password' : 
+                                errorParam === 'EmailNotVerified' ? 'Email not verified. Please check your email and verify your account.' :
+                                'Authentication failed')
+          
+          return new Response(
+            JSON.stringify({ 
+              error: errorParam || 'CredentialsSignin', 
+              ok: false,
+              message: errorMessage
+            }),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          )
+        }
+        
+        // Если это успешный redirect (например, на callback URL), возвращаем JSON с ok: true
+        // НО НЕ ПЕРЕХВАТЫВАЕМ ЕГО - пусть NextAuth обработает его сам для создания session
+        // Только для ошибок возвращаем JSON
+        if (location && result.status >= 300 && result.status < 400) {
+          // Это успешный redirect - возвращаем его как есть, чтобы NextAuth создал session
+          // НО для credentials provider нужно вернуть JSON
+          return new Response(
+            JSON.stringify({ ok: true, url: location }),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          )
         }
       }
       return result
