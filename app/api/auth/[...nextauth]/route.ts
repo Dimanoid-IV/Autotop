@@ -148,13 +148,13 @@ async function adaptRequestForNextAuth(
       return headers[name]
     },
     // Сохраняем функцию для получения финального ответа
-    __getResponse: () => {
-      // Если есть redirect URL, но это credentials callback, проверяем, нужно ли вернуть JSON
+    __getResponse: (requestUrl?: string) => {
+      // Если есть redirect URL, проверяем контекст запроса
       if (redirectUrl) {
-        // Для credentials callback с redirect: false, NextAuth может пытаться сделать redirect
-        // но мы должны вернуть JSON ответ
+        // Для credentials callback всегда возвращаем JSON вместо redirect
+        // если redirect указывает на signin/error (это означает ошибку аутентификации)
         if (redirectUrl.includes('/api/auth/signin') || redirectUrl.includes('/api/auth/error')) {
-          console.log('NextAuth: Converting redirect to JSON error response')
+          console.log('NextAuth: Converting redirect to JSON error response for credentials callback')
           // Возвращаем JSON с ошибкой вместо redirect
           return new Response(
             JSON.stringify({ error: 'CredentialsSignin', ok: false }),
@@ -164,6 +164,21 @@ async function adaptRequestForNextAuth(
             }
           )
         }
+        
+        // Если это credentials callback и redirect на другой URL, тоже возвращаем JSON
+        // но с ok: true (успешная аутентификация)
+        if (requestUrl && requestUrl.includes('/api/auth/callback/credentials')) {
+          console.log('NextAuth: Converting redirect to JSON success response for credentials callback')
+          return new Response(
+            JSON.stringify({ ok: true, url: redirectUrl }),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json', ...headers },
+            }
+          )
+        }
+        
+        // Для других случаев делаем обычный redirect
         return Response.redirect(redirectUrl, statusCode)
       }
       
@@ -279,7 +294,8 @@ export async function GET(
     // Иначе возвращаем ответ, созданный NextAuth через методы res
     try {
       console.log('NextAuth: Getting response from res object')
-      const response = (res as any).__getResponse()
+      // Передаем URL запроса для контекста
+      const response = (res as any).__getResponse(adaptedReq.url)
       
       // Проверяем, что ответ был создан
       if (!response) {
@@ -446,7 +462,8 @@ export async function POST(
     // Иначе возвращаем ответ, созданный NextAuth через методы res
     try {
       console.log('NextAuth: Getting response from res object')
-      const response = (res as any).__getResponse()
+      // Передаем URL запроса для контекста
+      const response = (res as any).__getResponse(adaptedReq.url)
       
       // Проверяем, что ответ был создан
       if (!response) {
