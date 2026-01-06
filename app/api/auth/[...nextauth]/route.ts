@@ -78,12 +78,32 @@ async function adaptRequestForNextAuth(
       return res
     },
     json: (data: any) => {
-      responseBody = JSON.stringify(data)
+      // Убеждаемся, что данные правильно сериализуются в JSON
+      if (data !== null && data !== undefined) {
+        try {
+          responseBody = typeof data === 'string' ? data : JSON.stringify(data)
+        } catch (e) {
+          console.error('Error stringifying JSON:', e)
+          responseBody = JSON.stringify({ error: 'Failed to serialize response' })
+        }
+      } else {
+        responseBody = 'null'
+      }
       headers['Content-Type'] = 'application/json'
       return res
     },
     send: (data: any) => {
-      responseBody = data
+      // Если данные - объект, сериализуем в JSON
+      if (typeof data === 'object' && data !== null) {
+        try {
+          responseBody = JSON.stringify(data)
+          headers['Content-Type'] = 'application/json'
+        } catch (e) {
+          responseBody = String(data)
+        }
+      } else {
+        responseBody = data !== null && data !== undefined ? String(data) : ''
+      }
       return res
     },
     redirect: (url: string) => {
@@ -103,7 +123,11 @@ async function adaptRequestForNextAuth(
       if (redirectUrl) {
         return Response.redirect(redirectUrl, statusCode)
       }
-      return new Response(responseBody, {
+      // Если responseBody не установлен, возвращаем пустой ответ
+      const body = responseBody !== null && responseBody !== undefined 
+        ? responseBody 
+        : ''
+      return new Response(body, {
         status: statusCode,
         headers,
       })
