@@ -111,8 +111,32 @@ async function adaptRequestForNextAuth(
     },
     redirect: (url: string) => {
       console.log('NextAuth res.redirect called with:', url)
-      redirectUrl = url
-      statusCode = 302
+      
+      // Проверяем, нужно ли вернуть JSON вместо redirect
+      // Это может быть определено через adaptedReq._shouldReturnJson
+      const shouldReturnJson = (adaptedReq as any)._shouldReturnJson
+      
+      if (shouldReturnJson) {
+        console.log('NextAuth: redirect: false detected, converting redirect to JSON response')
+        // Если redirect указывает на signin/error, это ошибка аутентификации
+        if (url.includes('/api/auth/signin') || url.includes('/api/auth/error')) {
+          redirectUrl = null
+          statusCode = 200
+          responseBody = JSON.stringify({ error: 'CredentialsSignin', ok: false })
+          headers['Content-Type'] = 'application/json'
+        } else {
+          // Если успешный redirect, возвращаем JSON с ok: true и url
+          redirectUrl = null
+          statusCode = 200
+          responseBody = JSON.stringify({ ok: true, url })
+          headers['Content-Type'] = 'application/json'
+        }
+      } else {
+        // Обычный redirect
+        redirectUrl = url
+        statusCode = 302
+      }
+      
       return res
     },
     setHeader: (name: string, value: string) => {
@@ -125,9 +149,24 @@ async function adaptRequestForNextAuth(
     },
     // Сохраняем функцию для получения финального ответа
     __getResponse: () => {
+      // Если есть redirect URL, но это credentials callback, проверяем, нужно ли вернуть JSON
       if (redirectUrl) {
+        // Для credentials callback с redirect: false, NextAuth может пытаться сделать redirect
+        // но мы должны вернуть JSON ответ
+        if (redirectUrl.includes('/api/auth/signin') || redirectUrl.includes('/api/auth/error')) {
+          console.log('NextAuth: Converting redirect to JSON error response')
+          // Возвращаем JSON с ошибкой вместо redirect
+          return new Response(
+            JSON.stringify({ error: 'CredentialsSignin', ok: false }),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json', ...headers },
+            }
+          )
+        }
         return Response.redirect(redirectUrl, statusCode)
       }
+      
       // Если responseBody не установлен, но статус 200, это может быть успешный ответ
       // NextAuth может не вызывать res.json() для некоторых ответов
       let body = responseBody !== null && responseBody !== undefined 
@@ -317,6 +356,7 @@ export async function POST(
     
     // Читаем body для POST запросов
     let body: string
+    let parsedBody: any = {}
     try {
       body = await req.text()
       
@@ -327,7 +367,8 @@ export async function POST(
       if (contentType.includes('application/json')) {
         // Если JSON, парсим и сохраняем как объект
         try {
-          adaptedReq.body = body ? JSON.parse(body) : {}
+          parsedBody = body ? JSON.parse(body) : {}
+          adaptedReq.body = parsedBody
         } catch (e) {
           console.error('NextAuth: Failed to parse JSON body:', e)
           adaptedReq.body = {}
@@ -335,10 +376,21 @@ export async function POST(
       } else if (contentType.includes('application/x-www-form-urlencoded')) {
         // Если form data, парсим в объект
         const params = new URLSearchParams(body)
-        adaptedReq.body = Object.fromEntries(params.entries())
+        parsedBody = Object.fromEntries(params.entries())
+        adaptedReq.body = parsedBody
       } else {
         // По умолчанию сохраняем как строку
         adaptedReq.body = body
+      }
+      
+      // Проверяем, есть ли параметр redirect: false в body
+      const shouldReturnJson = parsedBody.redirect === false || 
+                               (typeof parsedBody === 'object' && parsedBody.redirect === false)
+      
+      if (shouldReturnJson) {
+        console.log('NextAuth: redirect: false detected in request body')
+        // Сохраняем флаг для обработки в res.redirect
+        adaptedReq._shouldReturnJson = true
       }
       
       // Также сохраняем raw body для совместимости
