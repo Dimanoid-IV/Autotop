@@ -128,10 +128,18 @@ async function adaptRequestForNextAuth(
       if (redirectUrl) {
         return Response.redirect(redirectUrl, statusCode)
       }
-      // Если responseBody не установлен, возвращаем пустой ответ
-      const body = responseBody !== null && responseBody !== undefined 
+      // Если responseBody не установлен, но статус 200, это может быть успешный ответ
+      // NextAuth может не вызывать res.json() для некоторых ответов
+      let body = responseBody !== null && responseBody !== undefined 
         ? responseBody 
         : ''
+      
+      // Если body пустой, но статус 200, возвращаем пустой ответ
+      // Это может быть успешный ответ без body
+      if (!body && statusCode === 200) {
+        body = ''
+      }
+      
       return new Response(body, {
         status: statusCode,
         headers,
@@ -241,6 +249,15 @@ export async function GET(
       }
       
       console.log('NextAuth: Returning response with status:', response.status)
+      console.log('NextAuth: Response headers:', Object.fromEntries(response.headers.entries()))
+      
+      // Клонируем response, чтобы можно было прочитать body для логирования
+      const clonedResponse = response.clone()
+      const responseText = await clonedResponse.text()
+      if (responseText) {
+        console.log('NextAuth: Response body:', responseText.substring(0, 200))
+      }
+      
       return response
     } catch (responseError) {
       console.error('NextAuth: Failed to get response:', responseError)
@@ -386,6 +403,15 @@ export async function POST(
       }
       
       console.log('NextAuth: Returning response with status:', response.status)
+      console.log('NextAuth: Response headers:', Object.fromEntries(response.headers.entries()))
+      
+      // Клонируем response, чтобы можно было прочитать body для логирования
+      const clonedResponse = response.clone()
+      const responseText = await clonedResponse.text()
+      if (responseText) {
+        console.log('NextAuth: Response body:', responseText.substring(0, 200))
+      }
+      
       return response
     } catch (responseError) {
       console.error('NextAuth: Failed to get response:', responseError)
