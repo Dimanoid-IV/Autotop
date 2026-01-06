@@ -43,21 +43,17 @@ function errorResponse(message: string) {
   )
 }
 
-// Адаптер для преобразования NextRequest в формат, который понимает NextAuth v4
-// NextAuth v4 ожидает объекты req и res в формате Pages Router
+// Адаптер для преобразования NextRequest в формат Pages Router
 async function adaptRequestForNextAuth(
   req: NextRequest, 
   params: { nextauth?: string[] } | Promise<{ nextauth?: string[] }>
-): Promise<{ req: any; res: any }> {
+) {
   const url = new URL(req.url)
-  
-  // Параметры могут быть промисом в новых версиях Next.js
   const resolvedParams = await Promise.resolve(params)
   
-  // Извлекаем параметры nextauth из URL, если они не переданы через params
+  // Извлекаем параметры nextauth
   let nextauthParams: string[] = resolvedParams?.nextauth || []
   
-  // Если параметры не переданы, извлекаем их из URL
   if (!nextauthParams || nextauthParams.length === 0) {
     const pathParts = url.pathname.split('/')
     const authIndex = pathParts.indexOf('auth')
@@ -66,134 +62,66 @@ async function adaptRequestForNextAuth(
     }
   }
   
-  // Создаем объект ответа, который ожидает NextAuth v4
+  // Создаем объект ответа
   let statusCode = 200
   const headers: Record<string, string> = {}
   let responseBody: any = null
   let redirectUrl: string | null = null
+  let isCredentialsCallback = false
   
   const res: any = {
     status: (code: number) => {
-      console.log('NextAuth res.status called with:', code)
       statusCode = code
       return res
     },
     json: (data: any) => {
-      console.log('NextAuth res.json called with:', typeof data, data)
-      // Убеждаемся, что данные правильно сериализуются в JSON
-      if (data !== null && data !== undefined) {
-        try {
-          responseBody = typeof data === 'string' ? data : JSON.stringify(data)
-        } catch (e) {
-          console.error('Error stringifying JSON:', e)
-          responseBody = JSON.stringify({ error: 'Failed to serialize response' })
-        }
-      } else {
-        responseBody = 'null'
-      }
+      responseBody = typeof data === 'string' ? data : JSON.stringify(data)
       headers['Content-Type'] = 'application/json'
       return res
     },
     send: (data: any) => {
-      console.log('NextAuth res.send called with:', typeof data, data)
-      // Если данные - объект, сериализуем в JSON
       if (typeof data === 'object' && data !== null) {
-        try {
-          responseBody = JSON.stringify(data)
-          headers['Content-Type'] = 'application/json'
-        } catch (e) {
-          responseBody = String(data)
-        }
+        responseBody = JSON.stringify(data)
+        headers['Content-Type'] = 'application/json'
       } else {
         responseBody = data !== null && data !== undefined ? String(data) : ''
       }
       return res
     },
     redirect: (url: string) => {
-      console.log('NextAuth res.redirect called with:', url)
+      redirectUrl = url
+      statusCode = 302
       
-      // Проверяем, нужно ли вернуть JSON вместо redirect
-      // Это может быть определено через adaptedReq._shouldReturnJson
-      const shouldReturnJson = (adaptedReq as any)._shouldReturnJson
-      
-      if (shouldReturnJson) {
-        console.log('NextAuth: redirect: false detected, converting redirect to JSON response')
-        // Если redirect указывает на signin/error, это ошибка аутентификации
+      // Для credentials callback всегда возвращаем JSON вместо redirect
+      if (isCredentialsCallback) {
         if (url.includes('/api/auth/signin') || url.includes('/api/auth/error')) {
+          // Ошибка аутентификации
           redirectUrl = null
           statusCode = 200
           responseBody = JSON.stringify({ error: 'CredentialsSignin', ok: false })
           headers['Content-Type'] = 'application/json'
         } else {
-          // Если успешный redirect, возвращаем JSON с ok: true и url
+          // Успешная аутентификация
           redirectUrl = null
           statusCode = 200
           responseBody = JSON.stringify({ ok: true, url })
           headers['Content-Type'] = 'application/json'
         }
-      } else {
-        // Обычный redirect
-        redirectUrl = url
-        statusCode = 302
       }
-      
       return res
     },
     setHeader: (name: string, value: string) => {
-      console.log('NextAuth res.setHeader called with:', name, value)
       headers[name] = value
       return res
     },
     getHeader: (name: string) => {
       return headers[name]
     },
-    // Сохраняем функцию для получения финального ответа
-    __getResponse: (requestUrl?: string) => {
-      // Если есть redirect URL, проверяем контекст запроса
-      if (redirectUrl) {
-        // Для credentials callback всегда возвращаем JSON вместо redirect
-        // если redirect указывает на signin/error (это означает ошибку аутентификации)
-        if (redirectUrl.includes('/api/auth/signin') || redirectUrl.includes('/api/auth/error')) {
-          console.log('NextAuth: Converting redirect to JSON error response for credentials callback')
-          // Возвращаем JSON с ошибкой вместо redirect
-          return new Response(
-            JSON.stringify({ error: 'CredentialsSignin', ok: false }),
-            {
-              status: 200,
-              headers: { 'Content-Type': 'application/json', ...headers },
-            }
-          )
-        }
-        
-        // Если это credentials callback и redirect на другой URL, тоже возвращаем JSON
-        // но с ok: true (успешная аутентификация)
-        if (requestUrl && requestUrl.includes('/api/auth/callback/credentials')) {
-          console.log('NextAuth: Converting redirect to JSON success response for credentials callback')
-          return new Response(
-            JSON.stringify({ ok: true, url: redirectUrl }),
-            {
-              status: 200,
-              headers: { 'Content-Type': 'application/json', ...headers },
-            }
-          )
-        }
-        
-        // Для других случаев делаем обычный redirect
+    __getResponse: () => {
+      if (redirectUrl && !isCredentialsCallback) {
         return Response.redirect(redirectUrl, statusCode)
       }
-      
-      // Если responseBody не установлен, но статус 200, это может быть успешный ответ
-      // NextAuth может не вызывать res.json() для некоторых ответов
-      let body = responseBody !== null && responseBody !== undefined 
-        ? responseBody 
-        : ''
-      
-      // Если body пустой, но статус 200, возвращаем пустой ответ
-      // Это может быть успешный ответ без body
-      if (!body && statusCode === 200) {
-        body = ''
-      }
-      
+      const body = responseBody !== null && responseBody !== undefined ? responseBody : ''
       return new Response(body, {
         status: statusCode,
         headers,
@@ -201,8 +129,7 @@ async function adaptRequestForNextAuth(
     },
   }
   
-  // Создаем объект запроса в формате, который ожидает NextAuth v4
-  // NextAuth v4 может ожидать body как строку или как поток
+  // Создаем объект запроса
   const adaptedReq: any = {
     method: req.method,
     headers: Object.fromEntries(req.headers.entries()),
@@ -210,20 +137,15 @@ async function adaptRequestForNextAuth(
       nextauth: nextauthParams
     },
     url: url.toString(),
-    body: undefined, // Будет установлен позже для POST запросов
-    // Добавляем методы для чтения body, которые может использовать NextAuth
-    on: (event: string, callback: Function) => {
-      // Поддержка событий для stream
-      if (event === 'data' && adaptedReq.body) {
-        callback(Buffer.from(adaptedReq.body))
-      } else if (event === 'end') {
-        callback()
-      }
-      return adaptedReq
-    },
+    body: undefined,
   }
   
-  return { req: adaptedReq, res }
+  // Проверяем, является ли это credentials callback
+  if (nextauthParams[0] === 'callback' && nextauthParams[1] === 'credentials') {
+    isCredentialsCallback = true
+  }
+  
+  return { req: adaptedReq, res, isCredentialsCallback }
 }
 
 export async function GET(
@@ -231,103 +153,30 @@ export async function GET(
   context: { params: { nextauth?: string[] } | Promise<{ nextauth?: string[] }> }
 ) {
   try {
-    // Проверяем переменные окружения
     if (!process.env.NEXTAUTH_SECRET || !process.env.DATABASE_URL) {
-      console.error('NextAuth: Missing environment variables')
       return errorResponse('Required environment variables are not set')
     }
 
     if (!handler) {
-      try {
-        handler = await getHandler()
-      } catch (handlerError) {
-        console.error('NextAuth: Failed to initialize handler:', handlerError)
-        return errorResponse(
-          handlerError instanceof Error ? handlerError.message : 'Failed to initialize NextAuth handler'
-        )
-      }
+      handler = await getHandler()
     }
     
-    // Адаптируем запрос для NextAuth v4
-    let adaptedReq: any
-    let res: any
-    try {
-      const adapted = await adaptRequestForNextAuth(req, context.params)
-      adaptedReq = adapted.req
-      res = adapted.res
-    } catch (adaptError) {
-      console.error('NextAuth: Failed to adapt request:', adaptError)
-      return errorResponse(
-        adaptError instanceof Error ? adaptError.message : 'Failed to adapt request'
-      )
-    }
+    const { req: adaptedReq, res } = await adaptRequestForNextAuth(req, context.params)
     
-    // NextAuth v4 handler вызывается как функция с адаптированными req и res
-    console.log('NextAuth: Calling handler with adaptedReq:', {
-      method: adaptedReq.method,
-      url: adaptedReq.url,
-      query: adaptedReq.query,
-      hasBody: !!adaptedReq.body,
-      bodyType: typeof adaptedReq.body
-    })
+    const result = await handler(adaptedReq, res)
     
-    let result: any
-    try {
-      result = await handler(adaptedReq, res)
-      console.log('NextAuth: Handler returned:', typeof result, result instanceof Response ? 'Response' : 'other')
-    } catch (handlerError) {
-      console.error('NextAuth: Handler execution error:', handlerError)
-      if (handlerError instanceof Error) {
-        console.error('NextAuth: Error stack:', handlerError.stack)
-      }
-      return errorResponse(
-        handlerError instanceof Error ? handlerError.message : 'Handler execution failed'
-      )
-    }
-    
-    // Если handler вернул Response напрямую, используем его
     if (result instanceof Response) {
-      console.log('NextAuth: Returning Response from handler')
       return result
     }
     
-    // Иначе возвращаем ответ, созданный NextAuth через методы res
-    try {
-      console.log('NextAuth: Getting response from res object')
-      // Передаем URL запроса для контекста
-      const response = (res as any).__getResponse(adaptedReq.url)
-      
-      // Проверяем, что ответ был создан
-      if (!response) {
-        console.error('NextAuth: Handler did not create a response')
-        return errorResponse('NextAuth handler did not return a response')
-      }
-      
-      console.log('NextAuth: Returning response with status:', response.status)
-      console.log('NextAuth: Response headers:', Object.fromEntries(response.headers.entries()))
-      
-      // Клонируем response, чтобы можно было прочитать body для логирования
-      const clonedResponse = response.clone()
-      const responseText = await clonedResponse.text()
-      if (responseText) {
-        console.log('NextAuth: Response body:', responseText.substring(0, 200))
-      }
-      
-      return response
-    } catch (responseError) {
-      console.error('NextAuth: Failed to get response:', responseError)
-      if (responseError instanceof Error) {
-        console.error('NextAuth: Response error stack:', responseError.stack)
-      }
-      return errorResponse(
-        responseError instanceof Error ? responseError.message : 'Failed to get response'
-      )
+    const response = (res as any).__getResponse()
+    if (!response) {
+      return errorResponse('NextAuth handler did not return a response')
     }
+    
+    return response
   } catch (error) {
     console.error('NextAuth GET error:', error)
-    if (error instanceof Error) {
-      console.error('Error stack:', error.stack)
-    }
     return errorResponse(
       error instanceof Error ? error.message : 'Unknown error'
     )
@@ -339,163 +188,83 @@ export async function POST(
   context: { params: { nextauth?: string[] } | Promise<{ nextauth?: string[] }> }
 ) {
   try {
-    // Проверяем переменные окружения
     if (!process.env.NEXTAUTH_SECRET || !process.env.DATABASE_URL) {
-      console.error('NextAuth: Missing environment variables')
       return errorResponse('Required environment variables are not set')
     }
 
     if (!handler) {
-      try {
-        handler = await getHandler()
-      } catch (handlerError) {
-        console.error('NextAuth: Failed to initialize handler:', handlerError)
-        return errorResponse(
-          handlerError instanceof Error ? handlerError.message : 'Failed to initialize NextAuth handler'
-        )
-      }
+      handler = await getHandler()
     }
     
-    // Адаптируем запрос для NextAuth v4 (до чтения body)
-    let adaptedReq: any
-    let res: any
-    try {
-      const adapted = await adaptRequestForNextAuth(req, context.params)
-      adaptedReq = adapted.req
-      res = adapted.res
-    } catch (adaptError) {
-      console.error('NextAuth: Failed to adapt request:', adaptError)
-      return errorResponse(
-        adaptError instanceof Error ? adaptError.message : 'Failed to adapt request'
-      )
-    }
+    const { req: adaptedReq, res, isCredentialsCallback } = await adaptRequestForNextAuth(req, context.params)
     
-    // Читаем body для POST запросов
+    // Читаем body
     let body: string
-    let parsedBody: any = {}
     try {
       body = await req.text()
-      
-      // Определяем Content-Type
       const contentType = req.headers.get('content-type') || ''
       
-      // Парсим body в зависимости от Content-Type
       if (contentType.includes('application/json')) {
-        // Если JSON, парсим и сохраняем как объект
         try {
-          parsedBody = body ? JSON.parse(body) : {}
-          adaptedReq.body = parsedBody
+          adaptedReq.body = body ? JSON.parse(body) : {}
         } catch (e) {
-          console.error('NextAuth: Failed to parse JSON body:', e)
           adaptedReq.body = {}
         }
       } else if (contentType.includes('application/x-www-form-urlencoded')) {
-        // Если form data, парсим в объект
         const params = new URLSearchParams(body)
-        parsedBody = Object.fromEntries(params.entries())
-        adaptedReq.body = parsedBody
+        adaptedReq.body = Object.fromEntries(params.entries())
       } else {
-        // По умолчанию сохраняем как строку
         adaptedReq.body = body
       }
       
-      // Проверяем, есть ли параметр redirect: false в body
-      const shouldReturnJson = parsedBody.redirect === false || 
-                               (typeof parsedBody === 'object' && parsedBody.redirect === false)
-      
-      if (shouldReturnJson) {
-        console.log('NextAuth: redirect: false detected in request body')
-        // Сохраняем флаг для обработки в res.redirect
-        adaptedReq._shouldReturnJson = true
-      }
-      
-      // Также сохраняем raw body для совместимости
       adaptedReq.rawBody = body
-      if (body) {
-        adaptedReq.bodyBuffer = Buffer.from(body)
-      }
-      
-      // Логируем для отладки
-      console.log('NextAuth POST - Content-Type:', contentType)
-      console.log('NextAuth POST body length:', body.length)
-      if (body.length > 0 && body.length < 200) {
-        console.log('NextAuth POST body:', body)
-      } else if (body.length > 0) {
-        console.log('NextAuth POST body preview:', body.substring(0, 100))
-      }
-      console.log('NextAuth POST parsed body:', adaptedReq.body)
     } catch (bodyError) {
-      console.error('NextAuth: Failed to read request body:', bodyError)
       adaptedReq.body = {}
       adaptedReq.rawBody = ''
     }
     
-    // NextAuth v4 handler вызывается как функция с адаптированными req и res
-    console.log('NextAuth: Calling handler with adaptedReq:', {
-      method: adaptedReq.method,
-      url: adaptedReq.url,
-      query: adaptedReq.query,
-      hasBody: !!adaptedReq.body,
-      bodyType: typeof adaptedReq.body
-    })
-    
-    let result: any
-    try {
-      result = await handler(adaptedReq, res)
-      console.log('NextAuth: Handler returned:', typeof result, result instanceof Response ? 'Response' : 'other')
-    } catch (handlerError) {
-      console.error('NextAuth: Handler execution error:', handlerError)
-      if (handlerError instanceof Error) {
-        console.error('NextAuth: Error stack:', handlerError.stack)
-      }
-      return errorResponse(
-        handlerError instanceof Error ? handlerError.message : 'Handler execution failed'
-      )
+    // Обновляем флаг isCredentialsCallback в res объекте
+    if (isCredentialsCallback) {
+      (res as any)._isCredentialsCallback = true
     }
     
-    // Если handler вернул Response напрямую, используем его
+    const result = await handler(adaptedReq, res)
+    
     if (result instanceof Response) {
-      console.log('NextAuth: Returning Response from handler')
+      // Если это credentials callback, проверяем, не является ли это redirect
+      if (isCredentialsCallback && result.status >= 300 && result.status < 400) {
+        const location = result.headers.get('location')
+        if (location) {
+          if (location.includes('/api/auth/signin') || location.includes('/api/auth/error')) {
+            return new Response(
+              JSON.stringify({ error: 'CredentialsSignin', ok: false }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              }
+            )
+          } else {
+            return new Response(
+              JSON.stringify({ ok: true, url: location }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              }
+            )
+          }
+        }
+      }
       return result
     }
     
-    // Иначе возвращаем ответ, созданный NextAuth через методы res
-    try {
-      console.log('NextAuth: Getting response from res object')
-      // Передаем URL запроса для контекста
-      const response = (res as any).__getResponse(adaptedReq.url)
-      
-      // Проверяем, что ответ был создан
-      if (!response) {
-        console.error('NextAuth: Handler did not create a response')
-        return errorResponse('NextAuth handler did not return a response')
-      }
-      
-      console.log('NextAuth: Returning response with status:', response.status)
-      console.log('NextAuth: Response headers:', Object.fromEntries(response.headers.entries()))
-      
-      // Клонируем response, чтобы можно было прочитать body для логирования
-      const clonedResponse = response.clone()
-      const responseText = await clonedResponse.text()
-      if (responseText) {
-        console.log('NextAuth: Response body:', responseText.substring(0, 200))
-      }
-      
-      return response
-    } catch (responseError) {
-      console.error('NextAuth: Failed to get response:', responseError)
-      if (responseError instanceof Error) {
-        console.error('NextAuth: Response error stack:', responseError.stack)
-      }
-      return errorResponse(
-        responseError instanceof Error ? responseError.message : 'Failed to get response'
-      )
+    const response = (res as any).__getResponse()
+    if (!response) {
+      return errorResponse('NextAuth handler did not return a response')
     }
+    
+    return response
   } catch (error) {
     console.error('NextAuth POST error:', error)
-    if (error instanceof Error) {
-      console.error('Error stack:', error.stack)
-    }
     return errorResponse(
       error instanceof Error ? error.message : 'Unknown error'
     )
