@@ -7,7 +7,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <SessionProvider
       refetchInterval={5 * 60} // Refetch session every 5 minutes
-      refetchOnWindowFocus={false} // Don't refetch on window focus to avoid errors
+      refetchOnWindowFocus={true} // Refetch on window focus to ensure session is up to date
     >
       {children}
     </SessionProvider>

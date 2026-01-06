@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Header } from '@/components/Header'
@@ -11,6 +11,7 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 export default function SignInPage() {
   const t = useTranslations('common')
   const router = useRouter()
+  const { data: session, update: updateSession } = useSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -42,6 +43,7 @@ export default function SignInPage() {
       if (result?.error) {
         // Check if there's a message in the result
         const errorMessage = (result as any).message || result.error
+        console.log('Sign in error:', result.error, errorMessage)
         if (errorMessage.includes('EmailNotVerified') || errorMessage.includes('Email not verified') || result.error === 'EmailNotVerified') {
           setSuccess('Account created! Please check your email and verify your account before signing in.')
           setError('')
@@ -49,8 +51,17 @@ export default function SignInPage() {
           setError(errorMessage || 'Invalid email or password')
         }
       } else {
+        // Successfully signed in
+        console.log('Sign in successful')
+        // Force session update
+        await updateSession()
+        // Wait a bit for session to update
+        await new Promise(resolve => setTimeout(resolve, 500))
+        // Redirect and refresh
         router.push('/')
         router.refresh()
+        // Force page reload to ensure session is updated
+        window.location.href = '/'
       }
     } catch (err) {
       setError('An error occurred')
