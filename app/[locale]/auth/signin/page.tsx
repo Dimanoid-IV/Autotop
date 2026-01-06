@@ -42,8 +42,9 @@ export default function SignInPage() {
       if (result?.error) {
         // Check if there's a message in the result
         const errorMessage = (result as any).message || result.error
-        if (errorMessage.includes('Email not verified') || errorMessage.includes('email') || result.error === 'EmailNotVerified') {
-          setError('Please verify your email address before signing in. Check your email for a verification link.')
+        if (errorMessage.includes('EmailNotVerified') || errorMessage.includes('Email not verified') || result.error === 'EmailNotVerified') {
+          setSuccess('Account created! Please check your email and verify your account before signing in.')
+          setError('')
         } else {
           setError(errorMessage || 'Invalid email or password')
         }
@@ -158,10 +159,7 @@ export default function SignInPage() {
             </div>
 
             <p className="mt-6 text-center text-sm text-gray-600">
-              Don&apos;t have an account?{' '}
-              <a href="/register" className="text-primary hover:underline">
-                {t('register')}
-              </a>
+              Enter your email and password. If this is your first time, you&apos;ll receive a verification email.
             </p>
           </div>
         </div>

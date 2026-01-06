@@ -2,6 +2,8 @@ import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import GoogleProvider from 'next-auth/providers/google'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
+import { sendVerificationEmail } from './email'
 
 // Ленивая инициализация authOptions - создается только при первом вызове
 let _authOptions: NextAuthOptions | null = null
@@ -41,15 +43,52 @@ async function createAuthOptions(): Promise<NextAuthOptions> {
             where: { email: credentials.email },
           })
 
-          if (!user || !user.password) {
+          // Если пользователя нет - создаем его
+          if (!user) {
+            // Хешируем пароль
+            const hashedPassword = await bcrypt.hash(credentials.password, 10)
+            
+            // Генерируем токен для подтверждения email
+            const token = crypto.randomBytes(32).toString('hex')
+            const expires = new Date()
+            expires.setHours(expires.getHours() + 24) // Токен действителен 24 часа
+
+            // Создаем пользователя
+            const newUser = await prisma.user.create({
+              data: {
+                email: credentials.email,
+                password: hashedPassword,
+                emailVerified: null, // Email не подтвержден
+              },
+            })
+
+            // Создаем токен подтверждения
+            await prisma.verificationToken.create({
+              data: {
+                identifier: credentials.email,
+                token,
+                expires,
+              },
+            })
+
+            // Отправляем email для подтверждения
+            try {
+              await sendVerificationEmail(credentials.email, token, 'et')
+            } catch (emailError) {
+              console.error('Error sending verification email:', emailError)
+              // Не прерываем процесс, но логируем ошибку
+            }
+
+            // Выбрасываем ошибку о необходимости подтверждения email
+            throw new Error('EmailNotVerified: Please check your email and verify your account before signing in.')
+          }
+
+          // Если пользователь есть, но пароля нет (OAuth пользователь)
+          if (!user.password) {
             return null
           }
 
-          // Check if email is verified
-          if (!user.emailVerified) {
-            throw new Error('Email not verified. Please check your email and verify your account.')
-          }
-
+          // Проверяем пароль
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password
@@ -59,6 +98,51 @@ async function createAuthOptions(): Promise<NextAuthOptions> {
             return null
           }
 
+          // Проверяем, подтвержден ли email
+          if (!user.emailVerified) {
+            // Проверяем, есть ли активный токен
+            const existingToken = await prisma.verificationToken.findFirst({
+              where: {
+                identifier: credentials.email,
+                expires: {
+                  gt: new Date(),
+                },
+              },
+            })
+
+            // Если токена нет или он истек, создаем новый
+            if (!existingToken) {
+              const token = crypto.randomBytes(32).toString('hex')
+              const expires = new Date()
+              expires.setHours(expires.getHours() + 24)
+
+              // Удаляем старые токены
+              await prisma.verificationToken.deleteMany({
+                where: { identifier: credentials.email },
+              })
+
+              // Создаем новый токен
+              await prisma.verificationToken.create({
+                data: {
+                  identifier: credentials.email,
+                  token,
+                  expires,
+                },
+              })
+
+              // Отправляем email для подтверждения
+              try {
+                await sendVerificationEmail(credentials.email, token, 'et')
+              } catch (emailError) {
+                console.error('Error sending verification email:', emailError)
+              }
+            }
+
+            // Выбрасываем ошибку о необходимости подтверждения email
+            throw new Error('EmailNotVerified: Please check your email and verify your account before signing in.')
+          }
+
+          // Все проверки пройдены - разрешаем вход
           return {
             id: user.id,
             email: user.email,
@@ -98,6 +182,8 @@ async function createAuthOptions(): Promise<NextAuthOptions> {
             return false
           }
         }
+        // Для credentials provider, если user не передан (ошибка в authorize),
+        // signIn callback не вызывается, ошибка обрабатывается напрямую
         return true
       },
       async session({ session, token }) {

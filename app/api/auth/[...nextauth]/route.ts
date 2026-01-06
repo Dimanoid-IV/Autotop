@@ -102,19 +102,26 @@ async function adaptRequestForNextAuth(
             const errorDescription = urlObj.searchParams.get('error_description')
             
             // Определяем сообщение об ошибке
+            let errorCode = errorParam || 'CredentialsSignin'
             let errorMessage = 'Authentication failed'
+            
             if (errorDescription) {
               errorMessage = errorDescription
+              // Проверяем, содержит ли описание EmailNotVerified
+              if (errorDescription.includes('EmailNotVerified') || errorDescription.includes('Email not verified')) {
+                errorCode = 'EmailNotVerified'
+              }
+            } else if (errorParam === 'EmailNotVerified' || url.includes('EmailNotVerified') || url.includes('email')) {
+              errorCode = 'EmailNotVerified'
+              errorMessage = 'EmailNotVerified'
             } else if (errorParam === 'CredentialsSignin') {
               errorMessage = 'Invalid email or password'
-            } else if (errorParam === 'EmailNotVerified' || url.includes('email')) {
-              errorMessage = 'Email not verified. Please check your email and verify your account.'
             }
             
             redirectUrl = null
             statusCode = 200
             responseBody = JSON.stringify({ 
-              error: errorParam || 'CredentialsSignin', 
+              error: errorCode, 
               ok: false,
               message: errorMessage
             })
