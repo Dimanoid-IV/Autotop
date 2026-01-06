@@ -2,9 +2,9 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 // Ленивая инициализация NextAuth handler
-let handler: Awaited<ReturnType<typeof getHandler>> | null = null
+let handler: ((req: Request) => Promise<Response>) | null = null
 
-async function getHandler() {
+async function getHandler(): Promise<(req: Request) => Promise<Response>> {
   if (handler) {
     return handler
   }
@@ -22,9 +22,10 @@ async function getHandler() {
   const authOptions = await getAuthOptions()
   
   // NextAuth v4 в App Router - создаем handler
-  handler = NextAuth(authOptions)
+  const newHandler = NextAuth(authOptions) as (req: Request) => Promise<Response>
+  handler = newHandler
   
-  return handler
+  return newHandler
 }
 
 // Обработчик ошибок для возврата валидного ответа
