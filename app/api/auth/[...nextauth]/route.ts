@@ -1,10 +1,12 @@
+import { NextRequest } from 'next/server'
+
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 // Ленивая инициализация NextAuth handler
-let handler: ((req: Request) => Promise<Response>) | null = null
+let handler: any = null
 
-async function getHandler(): Promise<(req: Request) => Promise<Response>> {
+async function getHandler() {
   if (handler) {
     return handler
   }
@@ -22,10 +24,9 @@ async function getHandler(): Promise<(req: Request) => Promise<Response>> {
   const authOptions = await getAuthOptions()
   
   // NextAuth v4 в App Router - создаем handler
-  const newHandler = NextAuth(authOptions) as (req: Request) => Promise<Response>
-  handler = newHandler
+  handler = NextAuth(authOptions)
   
-  return newHandler
+  return handler
 }
 
 // Обработчик ошибок для возврата валидного ответа
@@ -42,7 +43,47 @@ function errorResponse(message: string) {
   )
 }
 
-export async function GET(req: Request) {
+// Адаптер для преобразования NextRequest в формат, который понимает NextAuth v4
+// NextAuth v4 ожидает объект с query параметрами в формате Pages Router
+async function adaptRequestForNextAuth(
+  req: NextRequest, 
+  params: { nextauth?: string[] } | Promise<{ nextauth?: string[] }>
+) {
+  const url = new URL(req.url)
+  
+  // Параметры могут быть промисом в новых версиях Next.js
+  const resolvedParams = await Promise.resolve(params)
+  
+  // Извлекаем параметры nextauth из URL, если они не переданы через params
+  let nextauthParams: string[] = resolvedParams?.nextauth || []
+  
+  // Если параметры не переданы, извлекаем их из URL
+  if (!nextauthParams || nextauthParams.length === 0) {
+    const pathParts = url.pathname.split('/')
+    const authIndex = pathParts.indexOf('auth')
+    if (authIndex !== -1 && authIndex < pathParts.length - 1) {
+      nextauthParams = pathParts.slice(authIndex + 1)
+    }
+  }
+  
+  // Создаем объект запроса в формате, который ожидает NextAuth v4
+  // NextAuth v4 ожидает объект с методом, query, headers и body
+  const adaptedReq: any = {
+    method: req.method,
+    headers: Object.fromEntries(req.headers.entries()),
+    query: {
+      nextauth: nextauthParams
+    },
+    url: url.toString(),
+  }
+  
+  return adaptedReq
+}
+
+export async function GET(
+  req: NextRequest,
+  context: { params: { nextauth?: string[] } | Promise<{ nextauth?: string[] }> }
+) {
   try {
     // Проверяем переменные окружения
     if (!process.env.NEXTAUTH_SECRET || !process.env.DATABASE_URL) {
@@ -53,8 +94,11 @@ export async function GET(req: Request) {
       handler = await getHandler()
     }
     
-    // NextAuth v4 handler вызывается как функция
-    return await (handler as any)(req)
+    // Адаптируем запрос для NextAuth v4
+    const adaptedReq = await adaptRequestForNextAuth(req, context.params)
+    
+    // NextAuth v4 handler вызывается как функция с адаптированным запросом
+    return await handler(adaptedReq)
   } catch (error) {
     console.error('NextAuth GET error:', error)
     return errorResponse(
@@ -63,7 +107,10 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(
+  req: NextRequest,
+  context: { params: { nextauth?: string[] } | Promise<{ nextauth?: string[] }> }
+) {
   try {
     // Проверяем переменные окружения
     if (!process.env.NEXTAUTH_SECRET || !process.env.DATABASE_URL) {
@@ -74,8 +121,15 @@ export async function POST(req: Request) {
       handler = await getHandler()
     }
     
-    // NextAuth v4 handler вызывается как функция
-    return await (handler as any)(req)
+    // Читаем body для POST запросов
+    const body = await req.text()
+    
+    // Адаптируем запрос для NextAuth v4
+    const adaptedReq = await adaptRequestForNextAuth(req, context.params)
+    adaptedReq.body = body
+    
+    // NextAuth v4 handler вызывается как функция с адаптированным запросом
+    return await handler(adaptedReq)
   } catch (error) {
     console.error('NextAuth POST error:', error)
     return errorResponse(
