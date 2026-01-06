@@ -100,46 +100,63 @@ async function createAuthOptions(): Promise<NextAuthOptions> {
 
           // Проверяем, подтвержден ли email
           if (!user.emailVerified) {
-            // Проверяем, есть ли активный токен
-            const existingToken = await prisma.verificationToken.findFirst({
-              where: {
-                identifier: credentials.email,
-                expires: {
-                  gt: new Date(),
-                },
-              },
-            })
-
-            // Если токена нет или он истек, создаем новый
-            if (!existingToken) {
-              const token = crypto.randomBytes(32).toString('hex')
-              const expires = new Date()
-              expires.setHours(expires.getHours() + 24)
-
-              // Удаляем старые токены
-              await prisma.verificationToken.deleteMany({
-                where: { identifier: credentials.email },
+            // Если пользователь был создан более 7 дней назад, автоматически подтверждаем email
+            // (это для существующих пользователей, которые были зарегистрированы до внедрения email verification)
+            const daysSinceCreation = Math.floor(
+              (new Date().getTime() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)
+            )
+            
+            if (daysSinceCreation > 7) {
+              // Автоматически подтверждаем email для старых пользователей
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { emailVerified: new Date() },
               })
-
-              // Создаем новый токен
-              await prisma.verificationToken.create({
-                data: {
+              
+              // Продолжаем вход
+            } else {
+              // Для новых пользователей требуем подтверждение email
+              // Проверяем, есть ли активный токен
+              const existingToken = await prisma.verificationToken.findFirst({
+                where: {
                   identifier: credentials.email,
-                  token,
-                  expires,
+                  expires: {
+                    gt: new Date(),
+                  },
                 },
               })
 
-              // Отправляем email для подтверждения
-              try {
-                await sendVerificationEmail(credentials.email, token, 'et')
-              } catch (emailError) {
-                console.error('Error sending verification email:', emailError)
-              }
-            }
+              // Если токена нет или он истек, создаем новый
+              if (!existingToken) {
+                const token = crypto.randomBytes(32).toString('hex')
+                const expires = new Date()
+                expires.setHours(expires.getHours() + 24)
 
-            // Выбрасываем ошибку о необходимости подтверждения email
-            throw new Error('EmailNotVerified: Please check your email and verify your account before signing in.')
+                // Удаляем старые токены
+                await prisma.verificationToken.deleteMany({
+                  where: { identifier: credentials.email },
+                })
+
+                // Создаем новый токен
+                await prisma.verificationToken.create({
+                  data: {
+                    identifier: credentials.email,
+                    token,
+                    expires,
+                  },
+                })
+
+                // Отправляем email для подтверждения
+                try {
+                  await sendVerificationEmail(credentials.email, token, 'et')
+                } catch (emailError) {
+                  console.error('Error sending verification email:', emailError)
+                }
+              }
+
+              // Выбрасываем ошибку о необходимости подтверждения email
+              throw new Error('EmailNotVerified: Please check your email and verify your account before signing in.')
+            }
           }
 
           // Все проверки пройдены - разрешаем вход
