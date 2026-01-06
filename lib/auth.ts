@@ -45,6 +45,11 @@ async function createAuthOptions(): Promise<NextAuthOptions> {
             return null
           }
 
+          // Check if email is verified
+          if (!user.emailVerified) {
+            throw new Error('Email not verified. Please check your email and verify your account.')
+          }
+
           const isPasswordValid = await bcrypt.compare(
             credentials.password,
             user.password

@@ -42,11 +42,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  reviews       Review[]
-  replies       ReviewReply[]
-  businesses    Business[] @relation("BusinessOwner")
-  accounts      Account[]
-  sessions      Session[]
+  reviews    Review[]
+  replies    ReviewReply[]
+  businesses Business[]    @relation("BusinessOwner")
+  accounts   Account[]
+  sessions   Session[]
 }
 
 model Account {
@@ -85,50 +85,50 @@ model VerificationToken {
 }
 
 model City {
-  id        String     @id @default(cuid())
+  id        String   @id @default(cuid())
   name      String
   nameEt    String
   nameRu    String
-  slug      String     @unique
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   businesses Business[]
 }
 
 model Category {
-  id        String     @id @default(cuid())
+  id        String       @id @default(cuid())
   nameEt    String
   nameRu    String
-  slug      String     @unique
+  slug      String       @unique
   type      BusinessType
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   businesses Business[]
 }
 
 model Business {
-  id          String       @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
-  description String?      @db.Text
+  description String?  @db.Text
   address     String
   latitude    Float?
   longitude   Float?
   phone       String?
   website     String?
   email       String?
-  verified    Boolean      @default(false)
+  verified    Boolean  @default(false)
   ownerId     String?
   cityId      String
   categoryId  String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  city        City         @relation(fields: [cityId], references: [id])
-  category    Category     @relation(fields: [categoryId], references: [id])
-  owner       User?        @relation("BusinessOwner", fields: [ownerId], references: [id])
-  reviews     Review[]
+  city     City     @relation(fields: [cityId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+  owner    User?    @relation("BusinessOwner", fields: [ownerId], references: [id])
+  reviews  Review[]
 
   @@index([cityId])
   @@index([categoryId])
@@ -136,19 +136,19 @@ model Business {
 }
 
 model Review {
-  id          String       @id @default(cuid())
-  rating      Int          // 1-5
-  comment     String?      @db.Text
-  status      ReviewStatus @default(PENDING)
-  userId      String
-  businessId  String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  approvedAt  DateTime?
+  id         String       @id @default(cuid())
+  rating     Int // 1-5
+  comment    String       @db.Text
+  status     ReviewStatus @default(PENDING)
+  userId     String
+  businessId String
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  approvedAt DateTime?
 
-  user        User         @relation(fields: [userId], references: [id])
-  business    Business     @relation(fields: [businessId], references: [id])
-  replies     ReviewReply[]
+  user     User          @relation(fields: [userId], references: [id])
+  business Business      @relation(fields: [businessId], references: [id])
+  replies  ReviewReply[]
 
   @@index([businessId])
   @@index([status])
@@ -156,20 +156,18 @@ model Review {
 }
 
 model ReviewReply {
-  id          String       @id @default(cuid())
-  comment     String       @db.Text
-  status      ReviewStatus @default(PENDING)
-  userId      String
-  reviewId    String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  approvedAt  DateTime?
+  id         String       @id @default(cuid())
+  comment    String       @db.Text
+  status     ReviewStatus @default(PENDING)
+  userId     String
+  reviewId   String
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  approvedAt DateTime?
 
-  user        User         @relation(fields: [userId], references: [id])
-  review      Review       @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
   @@index([reviewId])
   @@index([status])
 }
-
-

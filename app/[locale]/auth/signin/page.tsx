@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -14,12 +14,23 @@ export default function SignInPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    // Check for registration message
+    const registrationMessage = sessionStorage.getItem('registrationMessage')
+    if (registrationMessage) {
+      setSuccess(registrationMessage)
+      sessionStorage.removeItem('registrationMessage')
+    }
+  }, [])
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setSuccess('')
 
     try {
       const result = await signIn('credentials', {
@@ -29,7 +40,13 @@ export default function SignInPage() {
       })
 
       if (result?.error) {
-        setError('Invalid email or password')
+        // Check if there's a message in the result
+        const errorMessage = (result as any).message || result.error
+        if (errorMessage.includes('Email not verified') || errorMessage.includes('email') || result.error === 'EmailNotVerified') {
+          setError('Please verify your email address before signing in. Check your email for a verification link.')
+        } else {
+          setError(errorMessage || 'Invalid email or password')
+        }
       } else {
         router.push('/')
         router.refresh()
@@ -55,6 +72,12 @@ export default function SignInPage() {
             <h1 className="text-2xl font-bold text-gray-900 mb-6">
               {t('signIn')}
             </h1>
+
+            {success && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
+                {success}
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">

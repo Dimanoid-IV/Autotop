@@ -7,7 +7,7 @@ export const runtime = 'nodejs'
 
 const reviewSchema = z.object({
   rating: z.number().min(1).max(5),
-  comment: z.string().optional(),
+  comment: z.string().min(1, 'Comment is required'),
   businessId: z.string(),
 })
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const review = await prisma.review.create({
       data: {
         rating,
-        comment: comment || null,
+        comment,
         userId: session.user.id,
         businessId,
         status: 'PENDING',
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       business.name,
       review.user.name || review.user.email,
       rating,
-      comment || null,
+      comment,
       locale
     )
 

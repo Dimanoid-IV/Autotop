@@ -95,11 +95,37 @@ async function adaptRequestForNextAuth(
       // Для credentials callback всегда возвращаем JSON вместо redirect
       if (isCredentialsCallback) {
         if (url.includes('/api/auth/signin') || url.includes('/api/auth/error')) {
-          // Ошибка аутентификации
-          redirectUrl = null
-          statusCode = 200
-          responseBody = JSON.stringify({ error: 'CredentialsSignin', ok: false })
-          headers['Content-Type'] = 'application/json'
+          // Ошибка аутентификации - извлекаем параметр error из URL
+          try {
+            const urlObj = new URL(url, 'http://localhost')
+            const errorParam = urlObj.searchParams.get('error')
+            const errorDescription = urlObj.searchParams.get('error_description')
+            
+            // Определяем сообщение об ошибке
+            let errorMessage = 'Authentication failed'
+            if (errorDescription) {
+              errorMessage = errorDescription
+            } else if (errorParam === 'CredentialsSignin') {
+              errorMessage = 'Invalid email or password'
+            } else if (errorParam === 'EmailNotVerified' || url.includes('email')) {
+              errorMessage = 'Email not verified. Please check your email and verify your account.'
+            }
+            
+            redirectUrl = null
+            statusCode = 200
+            responseBody = JSON.stringify({ 
+              error: errorParam || 'CredentialsSignin', 
+              ok: false,
+              message: errorMessage
+            })
+            headers['Content-Type'] = 'application/json'
+          } catch (e) {
+            // Если не удалось распарсить URL, используем стандартное сообщение
+            redirectUrl = null
+            statusCode = 200
+            responseBody = JSON.stringify({ error: 'CredentialsSignin', ok: false })
+            headers['Content-Type'] = 'application/json'
+          }
         } else {
           // Успешная аутентификация
           redirectUrl = null
@@ -236,8 +262,20 @@ export async function POST(
         const location = result.headers.get('location')
         if (location) {
           if (location.includes('/api/auth/signin') || location.includes('/api/auth/error')) {
+            // Извлекаем параметр error из URL, если он есть
+            const url = new URL(location, adaptedReq.url)
+            const errorParam = url.searchParams.get('error')
+            const errorMessage = url.searchParams.get('error_description') || 
+                                 (errorParam === 'CredentialsSignin' ? 'Invalid email or password' : 
+                                  errorParam === 'EmailNotVerified' ? 'Email not verified. Please check your email and verify your account.' :
+                                  'Authentication failed')
+            
             return new Response(
-              JSON.stringify({ error: 'CredentialsSignin', ok: false }),
+              JSON.stringify({ 
+                error: errorParam || 'CredentialsSignin', 
+                ok: false,
+                message: errorMessage
+              }),
               {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' },

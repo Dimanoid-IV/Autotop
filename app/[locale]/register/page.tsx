@@ -53,19 +53,16 @@ export default function RegisterPage() {
         throw new Error(errorData.error || 'Registration failed')
       }
 
-      // Auto sign in after registration
-      const result = await signIn('credentials', {
-        email: formData.email,
-        password: formData.password,
-        redirect: false,
-      })
-
-      if (result?.error) {
-        router.push('/auth/signin')
-      } else {
-        router.push('/')
-        router.refresh()
-      }
+      const data = await response.json()
+      
+      // Show success message and redirect to sign in
+      // User needs to verify email before signing in
+      setError('') // Clear any previous errors
+      // Show success message
+      const successMessage = data.message || 'Registration successful! Please check your email to verify your account before signing in.'
+      // Store message in sessionStorage to show on signin page
+      sessionStorage.setItem('registrationMessage', successMessage)
+      router.push('/auth/signin')
     } catch (err: any) {
       setError(err.message || 'An error occurred')
     } finally {

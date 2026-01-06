@@ -9,7 +9,7 @@ import { StarRating } from './StarRating'
 
 const reviewSchema = z.object({
   rating: z.number().min(1).max(5),
-  comment: z.string().optional(),
+  comment: z.string().min(1, 'Comment is required'),
 })
 
 interface ReviewFormProps {
@@ -81,11 +81,12 @@ export function ReviewForm({ businessId, onSuccess }: ReviewFormProps) {
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t('comment')}
+          {t('comment')} *
         </label>
         <textarea
-          {...register('comment')}
+          {...register('comment', { required: 'Comment is required' })}
           rows={4}
+          required
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder={t('comment')}
         />
