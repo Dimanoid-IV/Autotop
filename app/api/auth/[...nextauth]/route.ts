@@ -135,6 +135,7 @@ async function adaptRequestForNextAuth(
   }
   
   // Создаем объект запроса в формате, который ожидает NextAuth v4
+  // NextAuth v4 может ожидать body как строку или как поток
   const adaptedReq: any = {
     method: req.method,
     headers: Object.fromEntries(req.headers.entries()),
@@ -142,7 +143,17 @@ async function adaptRequestForNextAuth(
       nextauth: nextauthParams
     },
     url: url.toString(),
-    body: undefined,
+    body: undefined, // Будет установлен позже для POST запросов
+    // Добавляем методы для чтения body, которые может использовать NextAuth
+    on: (event: string, callback: Function) => {
+      // Поддержка событий для stream
+      if (event === 'data' && adaptedReq.body) {
+        callback(Buffer.from(adaptedReq.body))
+      } else if (event === 'end') {
+        callback()
+      }
+      return adaptedReq
+    },
   }
   
   return { req: adaptedReq, res }
@@ -250,23 +261,37 @@ export async function POST(
       }
     }
     
-    // Читаем body для POST запросов
-    let body: string
-    try {
-      body = await req.text()
-    } catch (bodyError) {
-      console.error('NextAuth: Failed to read request body:', bodyError)
-      body = ''
-    }
-    
-    // Адаптируем запрос для NextAuth v4
+    // Адаптируем запрос для NextAuth v4 (до чтения body)
     let adaptedReq: any
     let res: any
     try {
       const adapted = await adaptRequestForNextAuth(req, context.params)
       adaptedReq = adapted.req
       res = adapted.res
+    } catch (adaptError) {
+      console.error('NextAuth: Failed to adapt request:', adaptError)
+      return errorResponse(
+        adaptError instanceof Error ? adaptError.message : 'Failed to adapt request'
+      )
+    }
+    
+    // Читаем body для POST запросов
+    let body: string
+    try {
+      body = await req.text()
+      // Устанавливаем body в адаптированный запрос
       adaptedReq.body = body
+      
+      // Также добавляем body как Buffer для совместимости
+      if (body) {
+        adaptedReq.bodyBuffer = Buffer.from(body)
+      }
+      
+      // Логируем для отладки (только первые 100 символов)
+      console.log('NextAuth POST body length:', body.length)
+      if (body.length > 0) {
+        console.log('NextAuth POST body preview:', body.substring(0, 100))
+      }
     } catch (adaptError) {
       console.error('NextAuth: Failed to adapt request:', adaptError)
       return errorResponse(
