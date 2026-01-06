@@ -142,10 +142,23 @@ export async function GET(
     const { req: adaptedReq, res } = await adaptRequestForNextAuth(req, context.params)
     
     // NextAuth v4 handler вызывается как функция с адаптированными req и res
-    await handler(adaptedReq, res)
+    const result = await handler(adaptedReq, res)
     
-    // Возвращаем ответ, созданный NextAuth через методы res
-    return (res as any).__getResponse()
+    // Если handler вернул Response напрямую, используем его
+    if (result instanceof Response) {
+      return result
+    }
+    
+    // Иначе возвращаем ответ, созданный NextAuth через методы res
+    const response = (res as any).__getResponse()
+    
+    // Проверяем, что ответ был создан
+    if (!response) {
+      // Если ответ не был создан, возвращаем ошибку
+      return errorResponse('NextAuth handler did not return a response')
+    }
+    
+    return response
   } catch (error) {
     console.error('NextAuth GET error:', error)
     return errorResponse(
@@ -176,10 +189,23 @@ export async function POST(
     adaptedReq.body = body
     
     // NextAuth v4 handler вызывается как функция с адаптированными req и res
-    await handler(adaptedReq, res)
+    const result = await handler(adaptedReq, res)
     
-    // Возвращаем ответ, созданный NextAuth через методы res
-    return (res as any).__getResponse()
+    // Если handler вернул Response напрямую, используем его
+    if (result instanceof Response) {
+      return result
+    }
+    
+    // Иначе возвращаем ответ, созданный NextAuth через методы res
+    const response = (res as any).__getResponse()
+    
+    // Проверяем, что ответ был создан
+    if (!response) {
+      // Если ответ не был создан, возвращаем ошибку
+      return errorResponse('NextAuth handler did not return a response')
+    }
+    
+    return response
   } catch (error) {
     console.error('NextAuth POST error:', error)
     return errorResponse(
