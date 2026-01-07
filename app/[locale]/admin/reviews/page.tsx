@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
@@ -10,29 +10,29 @@ import { StarRating } from '@/components/StarRating'
 import { getInitials } from '@/lib/utils'
 
 export default function AdminReviewsPage() {
-  const { data: session, status } = useSession()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [reviews, setReviews] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (status === 'loading') return
+    if (authLoading) return
 
-    if (!session || (session.user as any)?.role !== 'ADMIN') {
+    if (!user || user.role !== 'ADMIN') {
       router.push('/')
       return
     }
 
     loadPendingReviews()
-  }, [session, status, router])
+  }, [user, authLoading, router])
 
   const loadPendingReviews = async () => {
     try {
-      // In a real app, you'd have an API endpoint for this
-      // For now, we'll fetch all reviews and filter client-side
-      const response = await fetch('/api/reviews')
-      const data = await response.json()
-      setReviews(data.filter((r: any) => r.status === 'PENDING'))
+      const response = await fetch('/api/reviews?status=PENDING')
+      if (response.ok) {
+        const data = await response.json()
+        setReviews(Array.isArray(data) ? data : [])
+      }
     } catch (error) {
       console.error('Error loading reviews:', error)
     } finally {
@@ -40,8 +40,38 @@ export default function AdminReviewsPage() {
     }
   }
 
-  if (status === 'loading' || loading) {
-    return <div>Loading...</div>
+  const handleApprove = async (reviewId: string) => {
+    try {
+      const response = await fetch(`/api/reviews/${reviewId}/approve`, {
+        method: 'POST',
+      })
+      if (response.ok) {
+        setReviews(reviews.filter(r => r.id !== reviewId))
+      }
+    } catch (error) {
+      console.error('Error approving review:', error)
+    }
+  }
+
+  const handleReject = async (reviewId: string) => {
+    try {
+      const response = await fetch(`/api/reviews/${reviewId}/reject`, {
+        method: 'POST',
+      })
+      if (response.ok) {
+        setReviews(reviews.filter(r => r.id !== reviewId))
+      }
+    } catch (error) {
+      console.error('Error rejecting review:', error)
+    }
+  }
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl text-gray-600">Loading...</div>
+      </div>
+    )
   }
 
   return (
@@ -84,18 +114,18 @@ export default function AdminReviewsPage() {
                 </div>
 
                 <div className="flex gap-4">
-                  <a
-                    href={`/api/reviews/${review.id}/approve`}
+                  <button
+                    onClick={() => handleApprove(review.id)}
                     className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                   >
                     Approve
-                  </a>
-                  <a
-                    href={`/api/reviews/${review.id}/reject`}
+                  </button>
+                  <button
+                    onClick={() => handleReject(review.id)}
                     className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
                   >
                     Reject
-                  </a>
+                  </button>
                 </div>
               </div>
             ))}
