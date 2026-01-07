@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     facebookAuthUrl.searchParams.set('client_id', clientId)
     facebookAuthUrl.searchParams.set('redirect_uri', redirectUri)
     facebookAuthUrl.searchParams.set('response_type', 'code')
-    facebookAuthUrl.searchParams.set('scope', 'public_profile,email')
+    facebookAuthUrl.searchParams.set('scope', 'public_profile')
     facebookAuthUrl.searchParams.set('state', Buffer.from(JSON.stringify({ callbackUrl })).toString('base64'))
     
     console.log('🔗 Redirecting to Facebook OAuth')

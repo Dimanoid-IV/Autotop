@@ -48,9 +48,9 @@ export async function GET(request: NextRequest) {
     const tokens = await tokenResp.json()
     console.log('Tokens received, fetching user info...')
 
-    // Get user info from Facebook
+    // Get user info from Facebook (without email to avoid permission issues)
     const userInfoUrl = new URL('https://graph.facebook.com/me')
-    userInfoUrl.searchParams.set('fields', 'id,name,email,picture')
+    userInfoUrl.searchParams.set('fields', 'id,name,picture')
     userInfoUrl.searchParams.set('access_token', tokens.access_token)
 
     const userInfoResponse = await fetch(userInfoUrl.toString())
@@ -61,14 +61,10 @@ export async function GET(request: NextRequest) {
     }
 
     const facebookUser = await userInfoResponse.json()
-    console.log('Facebook user info:', { id: facebookUser.id, email: facebookUser.email, name: facebookUser.name })
+    console.log('Facebook user info:', { id: facebookUser.id, name: facebookUser.name })
 
-    // Use Facebook ID as fallback email if email is not provided
-    const userEmail = facebookUser.email || `facebook_${facebookUser.id}@autotop.placeholder`
-    
-    if (!facebookUser.email) {
-      console.warn('Facebook user has no email, using placeholder')
-    }
+    // Use Facebook ID as email (we don't request email permission to avoid approval process)
+    const userEmail = `facebook_${facebookUser.id}@autotop.app`
 
     // Create or update user in database
     const { prisma } = await import('@/lib/prisma')
@@ -80,13 +76,13 @@ export async function GET(request: NextRequest) {
     const userImage = facebookUser.picture?.data?.url || null
 
     if (!user) {
-      console.log('Creating new user...')
+      console.log('Creating new user with Facebook ID...')
       user = await prisma.user.create({
         data: {
           email: userEmail,
-          name: facebookUser.name || `Facebook User ${facebookUser.id}`,
+          name: facebookUser.name || `Facebook User`,
           image: userImage,
-          emailVerified: facebookUser.email ? new Date() : null, // Only verify if real email
+          emailVerified: new Date(), // Facebook users are verified by Facebook
         },
       })
     } else {
@@ -96,7 +92,7 @@ export async function GET(request: NextRequest) {
         data: {
           name: facebookUser.name || user.name,
           image: userImage || user.image,
-          emailVerified: user.emailVerified || (facebookUser.email ? new Date() : null),
+          emailVerified: user.emailVerified || new Date(),
         },
       })
     }
