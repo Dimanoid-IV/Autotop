@@ -61,19 +61,20 @@ export async function GET(request: NextRequest) {
     }
 
     const facebookUser = await userInfoResponse.json()
-    console.log('Facebook user info:', { email: facebookUser.email, name: facebookUser.name })
+    console.log('Facebook user info:', { id: facebookUser.id, email: facebookUser.email, name: facebookUser.name })
 
-    // Check if user provided email
+    // Use Facebook ID as fallback email if email is not provided
+    const userEmail = facebookUser.email || `facebook_${facebookUser.id}@autotop.placeholder`
+    
     if (!facebookUser.email) {
-      console.error('Facebook user has no email')
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/ru/auth/signin?error=NoEmail`)
+      console.warn('Facebook user has no email, using placeholder')
     }
 
     // Create or update user in database
     const { prisma } = await import('@/lib/prisma')
     
     let user = await prisma.user.findUnique({
-      where: { email: facebookUser.email },
+      where: { email: userEmail },
     })
 
     const userImage = facebookUser.picture?.data?.url || null
@@ -82,10 +83,10 @@ export async function GET(request: NextRequest) {
       console.log('Creating new user...')
       user = await prisma.user.create({
         data: {
-          email: facebookUser.email,
-          name: facebookUser.name || facebookUser.email.split('@')[0],
+          email: userEmail,
+          name: facebookUser.name || `Facebook User ${facebookUser.id}`,
           image: userImage,
-          emailVerified: new Date(), // Facebook emails are already verified
+          emailVerified: facebookUser.email ? new Date() : null, // Only verify if real email
         },
       })
     } else {
@@ -95,7 +96,7 @@ export async function GET(request: NextRequest) {
         data: {
           name: facebookUser.name || user.name,
           image: userImage || user.image,
-          emailVerified: user.emailVerified || new Date(),
+          emailVerified: user.emailVerified || (facebookUser.email ? new Date() : null),
         },
       })
     }
