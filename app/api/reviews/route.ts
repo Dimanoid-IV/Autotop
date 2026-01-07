@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { jwtVerify } from 'jose'
 import { sendReviewModerationEmail } from '@/lib/email'
 import { z } from 'zod'
 
@@ -13,17 +14,22 @@ const reviewSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const { prisma } = await import('@/lib/prisma')
-    const { getServerSession } = await import('next-auth')
-    const { getAuthOptions } = await import('@/lib/auth')
-    const authOptions = await getAuthOptions()
-    // В App Router нужно передать headers из request
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Verify JWT token
+    const token = request.cookies.get('auth-token')?.value
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized - Please sign in' }, { status: 401 })
     }
 
+    const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET!)
+    const { payload } = await jwtVerify(token, secret)
+    
+    const userId = payload.id as string
+    if (!userId) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+
+    const { prisma } = await import('@/lib/prisma')
+    
     const body = await request.json()
     const { rating, comment, businessId } = reviewSchema.parse(body)
 
@@ -42,7 +48,7 @@ export async function POST(request: NextRequest) {
     // Check if user already reviewed this business
     const existingReview = await prisma.review.findFirst({
       where: {
-        userId: session.user.id,
+        userId,
         businessId,
       },
     })
@@ -58,7 +64,7 @@ export async function POST(request: NextRequest) {
       data: {
         rating,
         comment,
-        userId: session.user.id,
+        userId,
         businessId,
         status: 'PENDING',
       },
