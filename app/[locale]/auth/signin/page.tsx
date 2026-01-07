@@ -25,6 +25,13 @@ export default function SignInPage() {
       setSuccess(registrationMessage)
       sessionStorage.removeItem('registrationMessage')
     }
+    
+    // Check for OAuth error in URL
+    const urlParams = new URLSearchParams(window.location.search)
+    const errorParam = urlParams.get('error')
+    if (errorParam) {
+      setError(`OAuth error: ${errorParam}. Please check your Google OAuth configuration.`)
+    }
   }, [])
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
@@ -34,44 +41,52 @@ export default function SignInPage() {
     setSuccess('')
 
     try {
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
+      const response = await fetch('/api/auth/simple-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       })
 
-      if (result?.error) {
-        // Check if there's a message in the result
-        const errorMessage = (result as any).message || result.error
-        console.log('Sign in error:', result.error, errorMessage)
-        if (errorMessage.includes('EmailNotVerified') || errorMessage.includes('Email not verified') || result.error === 'EmailNotVerified') {
-          setSuccess('Account created! Please check your email and verify your account before signing in.')
+      const data = await response.json()
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          // Email not verified
+          setSuccess(data.message || 'Please verify your email before signing in.')
           setError('')
         } else {
-          setError(errorMessage || 'Invalid email or password')
+          setError(data.message || data.error || 'Invalid email or password')
         }
-      } else {
-        // Successfully signed in
-        console.log('Sign in successful')
-        // Force session update
-        await updateSession()
-        // Wait a bit for session to update
-        await new Promise(resolve => setTimeout(resolve, 500))
-        // Redirect and refresh
-        router.push('/')
-        router.refresh()
-        // Force page reload to ensure session is updated
+        return
+      }
+
+      if (data.needsVerification) {
+        // New user created, needs email verification
+        setSuccess(data.message || 'Account created! Please check your email to verify your account.')
+        setError('')
+        return
+      }
+
+      if (data.success) {
+        // Successfully signed in - redirect to home
         window.location.href = '/'
       }
     } catch (err) {
+      console.error('Sign in error:', err)
       setError('An error occurred')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleGoogleSignIn = () => {
-    signIn('google', { callbackUrl: '/' })
+  const handleGoogleSignIn = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    console.log('Google sign in clicked - redirecting to direct OAuth...')
+    // Direct redirect to our custom Google OAuth endpoint (bypasses NextAuth)
+    window.location.href = '/api/auth/google?callbackUrl=/'
   }
 
   return (
@@ -144,6 +159,7 @@ export default function SignInPage() {
               </div>
 
               <button
+                type="button"
                 onClick={handleGoogleSignIn}
                 className="mt-4 w-full px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
               >

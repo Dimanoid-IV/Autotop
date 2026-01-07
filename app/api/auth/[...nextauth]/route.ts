@@ -75,11 +75,13 @@ async function adaptRequestForNextAuth(
       return res
     },
     json: (data: any) => {
+      console.log('📤 res.json() called')
       responseBody = typeof data === 'string' ? data : JSON.stringify(data)
       headers['Content-Type'] = 'application/json'
       return res
     },
     send: (data: any) => {
+      console.log('📤 res.send() called')
       if (typeof data === 'object' && data !== null) {
         responseBody = JSON.stringify(data)
         headers['Content-Type'] = 'application/json'
@@ -89,6 +91,7 @@ async function adaptRequestForNextAuth(
       return res
     },
     redirect: (url: string) => {
+      console.log('🔄 res.redirect() called with URL:', url?.substring(0, 150))
       redirectUrl = url
       statusCode = 302
       
@@ -148,15 +151,48 @@ async function adaptRequestForNextAuth(
       }
       return res
     },
-    setHeader: (name: string, value: string) => {
-      headers[name] = value
+    setHeader: (name: string, value: string | string[]) => {
+      if (Array.isArray(value)) {
+        headers[name] = value.join(', ')
+      } else {
+        headers[name] = value
+      }
       return res
     },
     getHeader: (name: string) => {
       return headers[name]
     },
+    end: (data?: any) => {
+      if (data !== undefined && data !== null) {
+        if (typeof data === 'object') {
+          responseBody = JSON.stringify(data)
+          headers['Content-Type'] = headers['Content-Type'] || 'application/json'
+        } else {
+          responseBody = String(data)
+        }
+      }
+      return res
+    },
+    write: (chunk: any) => {
+      if (responseBody === null) {
+        responseBody = ''
+      }
+      responseBody += String(chunk)
+      return res
+    },
+    writeHead: (code: number, headersOrReason?: any, headersArg?: any) => {
+      statusCode = code
+      const headersToSet = typeof headersOrReason === 'object' ? headersOrReason : headersArg
+      if (headersToSet) {
+        Object.entries(headersToSet).forEach(([key, value]) => {
+          res.setHeader(key, value as string)
+        })
+      }
+      return res
+    },
     __getResponse: () => {
       if (redirectUrl && !isCredentialsCallback) {
+        console.log('Redirecting to:', redirectUrl.substring(0, 100), '... (status:', statusCode, ')')
         return Response.redirect(redirectUrl, statusCode)
       }
       const body = responseBody !== null && responseBody !== undefined ? responseBody : ''
@@ -192,29 +228,54 @@ export async function GET(
 ) {
   try {
     if (!process.env.NEXTAUTH_SECRET || !process.env.DATABASE_URL) {
+      console.error('Missing env vars:', {
+        hasSecret: !!process.env.NEXTAUTH_SECRET,
+        hasDb: !!process.env.DATABASE_URL
+      })
       return errorResponse('Required environment variables are not set')
     }
 
     if (!handler) {
+      console.log('Initializing NextAuth handler...')
       handler = await getHandler()
+      console.log('NextAuth handler initialized')
     }
+    
+    const resolvedParams = await Promise.resolve(context.params)
+    console.log('NextAuth GET request:', resolvedParams?.nextauth)
     
     const { req: adaptedReq, res } = await adaptRequestForNextAuth(req, context.params)
     
+    console.log('Calling NextAuth handler with:', {
+      method: adaptedReq.method,
+      query: adaptedReq.query,
+      url: adaptedReq.url
+    })
+    
     const result = await handler(adaptedReq, res)
     
+    console.log('Handler returned:', {
+      isResponse: result instanceof Response,
+      type: typeof result
+    })
+    
     if (result instanceof Response) {
+      console.log('Handler returned Response, status:', result.status)
       return result
     }
     
+    console.log('Getting response from res mock...')
     const response = (res as any).__getResponse()
     if (!response) {
+      console.log('ERROR: __getResponse returned null/undefined')
       return errorResponse('NextAuth handler did not return a response')
     }
     
+    console.log('Returning adapted response, status:', response.status, 'url:', response.url)
     return response
   } catch (error) {
     console.error('NextAuth GET error:', error)
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack')
     return errorResponse(
       error instanceof Error ? error.message : 'Unknown error'
     )
@@ -235,6 +296,9 @@ export async function POST(
     }
     
     const { req: adaptedReq, res, isCredentialsCallback } = await adaptRequestForNextAuth(req, context.params)
+    
+    const resolvedParams = await Promise.resolve(context.params)
+    console.log('NextAuth POST request:', resolvedParams?.nextauth)
     
     // Читаем body
     let body: string
@@ -295,20 +359,9 @@ export async function POST(
           )
         }
         
-        // Если это успешный redirect (например, на callback URL), возвращаем JSON с ok: true
-        // НО НЕ ПЕРЕХВАТЫВАЕМ ЕГО - пусть NextAuth обработает его сам для создания session
-        // Только для ошибок возвращаем JSON
-        if (location && result.status >= 300 && result.status < 400) {
-          // Это успешный redirect - возвращаем его как есть, чтобы NextAuth создал session
-          // НО для credentials provider нужно вернуть JSON
-          return new Response(
-            JSON.stringify({ ok: true, url: location }),
-            {
-              status: 200,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          )
-        }
+        // Для успешного входа - НЕ перехватываем redirect!
+        // Позволяем NextAuth установить session cookie через реальный redirect
+        // ВАЖНО: возвращаем result как есть, чтобы cookie был установлен
       }
       return result
     }

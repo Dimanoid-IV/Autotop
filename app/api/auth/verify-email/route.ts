@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     if (!token || !email) {
       return NextResponse.redirect(
-        new URL('/auth/verify-email?error=missing_params', request.url)
+        new URL('/ru/auth/verify-email?error=missing_params', request.url)
       )
     }
 
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     if (!verificationToken) {
       return NextResponse.redirect(
-        new URL('/auth/verify-email?error=invalid_token', request.url)
+        new URL('/ru/auth/verify-email?error=invalid_token', request.url)
       )
     }
 
@@ -41,14 +41,14 @@ export async function GET(request: NextRequest) {
         where: { token },
       })
       return NextResponse.redirect(
-        new URL('/auth/verify-email?error=expired_token', request.url)
+        new URL('/ru/auth/verify-email?error=expired_token', request.url)
       )
     }
 
     // Check if email matches
     if (verificationToken.identifier !== email) {
       return NextResponse.redirect(
-        new URL('/auth/verify-email?error=invalid_email', request.url)
+        new URL('/ru/auth/verify-email?error=invalid_email', request.url)
       )
     }
 
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.redirect(
-        new URL('/auth/verify-email?error=user_not_found', request.url)
+        new URL('/ru/auth/verify-email?error=user_not_found', request.url)
       )
     }
 
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
         where: { token },
       })
       return NextResponse.redirect(
-        new URL('/auth/verify-email?success=already_verified', request.url)
+        new URL('/ru/auth/verify-email?success=already_verified', request.url)
       )
     }
 
@@ -86,14 +86,15 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.redirect(
-      new URL('/auth/verify-email?success=verified', request.url)
+      new URL('/ru/auth/verify-email?success=verified', request.url)
     )
   } catch (error) {
     console.error('Email verification error:', error)
     return NextResponse.redirect(
-      new URL('/auth/verify-email?error=server_error', request.url)
+      new URL('/ru/auth/verify-email?error=server_error', request.url)
     )
   }
 }
+
 
 

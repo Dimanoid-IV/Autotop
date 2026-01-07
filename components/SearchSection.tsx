@@ -41,3 +41,4 @@ export function SearchSection({ locale }: SearchSectionProps) {
 
 
 
+

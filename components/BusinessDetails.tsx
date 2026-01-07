@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/useAuth'
 import { MapPin, Phone, Globe, CheckCircle, Star } from 'lucide-react'
 import { StarRating } from './StarRating'
 import { ReviewForm } from './ReviewForm'
@@ -11,8 +11,9 @@ import { OwnerVerificationCTA } from './OwnerVerificationCTA'
 import { formatRating } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 
-const Map = dynamic(() => import('./Map').then((mod) => mod.Map), {
+const DynamicMap = dynamic(() => import('./Map').then(mod => ({ default: mod.Map })), {
   ssr: false,
+  loading: () => <div className="w-full h-full bg-gray-100 animate-pulse" />,
 })
 
 interface BusinessDetailsProps {
@@ -22,8 +23,11 @@ interface BusinessDetailsProps {
 
 export function BusinessDetails({ business, locale }: BusinessDetailsProps) {
   const t = useTranslations('business')
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const [showReviewForm, setShowReviewForm] = useState(false)
+  
+  // Совместимость: создаем объект session для компонентов, которые его ожидают
+  const session = user ? { user } : null
 
   const cityName = locale === 'ru' ? business.city.nameRu : business.city.nameEt
   const categoryName = locale === 'ru' ? business.category.nameRu : business.category.nameEt
@@ -101,7 +105,7 @@ export function BusinessDetails({ business, locale }: BusinessDetailsProps) {
               <div className="mb-6">
                 <h2 className="text-xl font-semibold mb-4">Map</h2>
                 <div className="h-64 rounded-lg overflow-hidden">
-                  <Map
+                  <DynamicMap
                     latitude={business.latitude}
                     longitude={business.longitude}
                     name={business.name}

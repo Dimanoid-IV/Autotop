@@ -1,16 +1,19 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useSession, signOut } from 'next-auth/react'
+import { useAuth } from '@/hooks/useAuth'
 import { Link, usePathname } from '@/i18n/routing'
 import { Menu, X } from 'lucide-react'
 import { useState } from 'react'
 
 export function Header() {
   const t = useTranslations('common')
-  const { data: session } = useSession()
+  const { user, logout } = useAuth()
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  
+  // Совместимость: создаем объект session
+  const session = user ? { user } : null
 
   const navItems = [
     { href: '/', label: t('home') },
@@ -50,7 +53,7 @@ export function Header() {
                   {session.user?.name || session.user?.email}
                 </span>
                 <button
-                  onClick={() => signOut()}
+                  onClick={logout}
                   className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-primary"
                 >
                   {t('signOut')}
@@ -100,7 +103,7 @@ export function Header() {
                   </div>
                   <button
                     onClick={() => {
-                      signOut()
+                      logout()
                       setMobileMenuOpen(false)
                     }}
                     className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-100"

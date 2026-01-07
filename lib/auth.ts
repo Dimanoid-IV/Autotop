@@ -20,6 +20,13 @@ async function createAuthOptions(): Promise<NextAuthOptions> {
     throw new Error('DATABASE_URL is required')
   }
 
+  console.log('Google OAuth config:', {
+    hasClientId: !!process.env.GOOGLE_CLIENT_ID,
+    hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+    clientIdLength: process.env.GOOGLE_CLIENT_ID?.length || 0,
+    clientSecretLength: process.env.GOOGLE_CLIENT_SECRET?.length || 0,
+  })
+
   const { prisma } = await import('./prisma')
   
   return {
@@ -27,6 +34,13 @@ async function createAuthOptions(): Promise<NextAuthOptions> {
       GoogleProvider({
         clientId: process.env.GOOGLE_CLIENT_ID || '',
         clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+        authorization: {
+          params: {
+            prompt: "consent",
+            access_type: "offline",
+            response_type: "code"
+          }
+        }
       }),
       CredentialsProvider({
         name: 'Credentials',
@@ -194,6 +208,26 @@ async function createAuthOptions(): Promise<NextAuthOptions> {
       strategy: 'jwt',
     },
     secret: process.env.NEXTAUTH_SECRET,
+    events: {
+      async signIn(message) {
+        console.log('NextAuth signIn event:', message)
+      },
+      async signOut(message) {
+        console.log('NextAuth signOut event:', message)
+      },
+    },
+    logger: {
+      error(code, metadata) {
+        console.error('NextAuth error:', code, metadata)
+      },
+      warn(code) {
+        console.warn('NextAuth warn:', code)
+      },
+      debug(code, metadata) {
+        console.log('NextAuth debug:', code, metadata)
+      },
+    },
+    debug: true,
   }
 }
 

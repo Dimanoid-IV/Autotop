@@ -178,7 +178,7 @@ export async function sendVerificationEmail(
   locale: string = 'et'
 ) {
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
-  const verifyUrl = `${baseUrl}/auth/verify-email?token=${token}&email=${encodeURIComponent(email)}`
+  const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${token}&email=${encodeURIComponent(email)}`
 
   const subject = locale === 'ru'
     ? 'Подтвердите ваш email адрес'
