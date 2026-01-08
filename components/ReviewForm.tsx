@@ -76,13 +76,11 @@ export function ReviewForm({ businessId, onSuccess }: ReviewFormProps) {
     }
   }
 
-  const handleFormSubmit = (e: React.FormEvent) => {
-    console.log('📝 Form submit event fired', { rating, errors })
-    handleSubmit(onSubmit)(e)
-  }
-
   return (
-    <form onSubmit={handleFormSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit((data) => {
+      console.log('📝 Form handleSubmit called', { data, rating, errors })
+      onSubmit(data)
+    })} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           {t('rating')} *
