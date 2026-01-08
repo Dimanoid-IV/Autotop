@@ -33,7 +33,10 @@ export function ReviewForm({ businessId, onSuccess }: ReviewFormProps) {
   })
 
   const onSubmit = async (data: any) => {
+    console.log('🚀 onSubmit called', { data, rating, businessId })
+    
     if (rating === 0) {
+      console.error('❌ Rating is 0')
       setError('Please select a rating')
       return
     }
@@ -42,6 +45,7 @@ export function ReviewForm({ businessId, onSuccess }: ReviewFormProps) {
     setError(null)
 
     try {
+      console.log('📤 Sending review...')
       const response = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -52,23 +56,33 @@ export function ReviewForm({ businessId, onSuccess }: ReviewFormProps) {
         }),
       })
 
+      console.log('📥 Response received', { status: response.status, ok: response.ok })
+
       if (!response.ok) {
         const errorData = await response.json()
+        console.error('❌ Error response:', errorData)
         throw new Error(errorData.error || 'Failed to submit review')
       }
 
+      console.log('✅ Review submitted successfully')
       reset()
       setRating(0)
       onSuccess()
     } catch (err: any) {
+      console.error('❌ Submission error:', err)
       setError(err.message || 'An error occurred')
     } finally {
       setSubmitting(false)
     }
   }
 
+  const handleFormSubmit = (e: React.FormEvent) => {
+    console.log('📝 Form submit event fired', { rating, errors })
+    handleSubmit(onSubmit)(e)
+  }
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleFormSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           {t('rating')} *
@@ -86,7 +100,6 @@ export function ReviewForm({ businessId, onSuccess }: ReviewFormProps) {
         <textarea
           {...register('comment', { required: 'Comment is required' })}
           rows={4}
-          required
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder={t('comment')}
         />
