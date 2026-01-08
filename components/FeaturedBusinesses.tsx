@@ -7,7 +7,7 @@ interface FeaturedBusinessesProps {
 
 export async function FeaturedBusinesses({ locale }: FeaturedBusinessesProps) {
   // Получаем 6 случайных оплаченных бизнесов
-  const featuredBusinesses = await prisma.business.findMany({
+  const businesses = await prisma.business.findMany({
     where: {
       isFeatured: true,
       featuredUntil: {
@@ -30,7 +30,27 @@ export async function FeaturedBusinesses({ locale }: FeaturedBusinessesProps) {
     }
   })
 
-  if (featuredBusinesses.length === 0) return null
+  if (businesses.length === 0) return null
+
+  // Преобразуем данные для BusinessCard
+  const featuredBusinesses = businesses.map(business => {
+    const reviewCount = business.reviews.length
+    const rating = reviewCount > 0
+      ? business.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+      : 0
+
+    return {
+      id: business.id,
+      name: business.name,
+      description: business.description,
+      address: business.address,
+      city: business.city,
+      category: business.category,
+      rating,
+      reviewCount,
+      verified: business.verified
+    }
+  })
 
   return (
     <section className="container mx-auto px-4 py-12">
