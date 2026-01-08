@@ -21,7 +21,7 @@ export function PricingCards({ locale }: PricingCardsProps) {
     {
       id: '1month',
       name: locale === 'ru' ? '1 месяц' : '1 kuu',
-      price: 15,
+      price: 29,
       period: locale === 'ru' ? 'месяц' : 'kuu',
       discount: null,
       popular: false,
@@ -35,31 +35,29 @@ export function PricingCards({ locale }: PricingCardsProps) {
     {
       id: '2months',
       name: locale === 'ru' ? '2 месяца' : '2 kuud',
-      price: 28,
-      originalPrice: 30,
+      price: 49,
+      originalPrice: 58,
       period: locale === 'ru' ? '2 месяца' : '2 kuud',
-      discount: '7%',
+      discount: '15%',
       popular: true,
       features: [
         locale === 'ru' ? 'Все из тарифа "1 месяц"' : 'Kõik plaanist "1 kuu"',
-        locale === 'ru' ? 'Экономия 2€' : 'Säästa 2€',
+        locale === 'ru' ? 'Экономия 9€' : 'Säästa 9€',
         locale === 'ru' ? 'Приоритет в показе' : 'Prioriteet näitamisel',
-        locale === 'ru' ? 'Техподдержка 24/7' : 'Tugi 24/7',
       ]
     },
     {
       id: '6months',
       name: locale === 'ru' ? '6 месяцев' : '6 kuud',
-      price: 75,
-      originalPrice: 90,
+      price: 131,
+      originalPrice: 174,
       period: locale === 'ru' ? '6 месяцев' : '6 kuud',
-      discount: '17%',
+      discount: '25%',
       popular: false,
       features: [
         locale === 'ru' ? 'Все из тарифа "2 месяца"' : 'Kõik plaanist "2 kuud"',
-        locale === 'ru' ? 'Экономия 15€' : 'Säästa 15€',
+        locale === 'ru' ? 'Экономия 43€' : 'Säästa 43€',
         locale === 'ru' ? 'Максимальная видимость' : 'Maksimaalne nähtavus',
-        locale === 'ru' ? 'Персональный менеджер' : 'Isiklik juht',
       ]
     }
   ]
