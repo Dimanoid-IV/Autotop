@@ -18,6 +18,7 @@ export function Header() {
   const navItems = [
     { href: '/', label: t('home') },
     { href: '/add-service', label: t('addService') },
+    { href: '/advertise', label: t('advertise'), highlight: true },
   ]
 
   return (
@@ -35,7 +36,9 @@ export function Header() {
                 key={item.href}
                 href={item.href}
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  pathname === item.href
+                  item.highlight
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-md'
+                    : pathname === item.href
                     ? 'text-primary bg-primary/10'
                     : 'text-gray-700 hover:text-primary hover:bg-gray-100'
                 }`}
