@@ -44,6 +44,8 @@ export async function FeaturedBusinesses({ locale }: FeaturedBusinessesProps) {
       name: business.name,
       description: business.description,
       address: business.address,
+      latitude: business.latitude,
+      longitude: business.longitude,
       city: business.city,
       category: business.category,
       rating,

@@ -12,6 +12,8 @@ interface BusinessCardProps {
     name: string
     description?: string | null
     address: string
+    latitude?: number | null
+    longitude?: number | null
     city: {
       name: string
       nameEt: string
@@ -53,6 +55,26 @@ export function BusinessCard({ business, locale }: BusinessCardProps) {
         <MapPin className="h-4 w-4 mr-1" />
         <span>{cityName}, {business.address}</span>
       </div>
+
+      {/* Google Map */}
+      {(business.latitude && business.longitude) || business.address ? (
+        <div className="mb-4 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+          <iframe
+            width="100%"
+            height="150"
+            style={{ border: 0 }}
+            loading="lazy"
+            allowFullScreen
+            referrerPolicy="no-referrer-when-downgrade"
+            src={`https://www.google.com/maps?q=${encodeURIComponent(
+              business.latitude && business.longitude
+                ? `${business.latitude},${business.longitude}`
+                : `${cityName}, ${business.address}, Estonia`
+            )}&output=embed`}
+            className="w-full"
+          />
+        </div>
+      ) : null}
 
       {business.description && (
         <p className="text-gray-700 text-sm mb-4 line-clamp-2">

@@ -42,6 +42,8 @@ export async function GET(request: NextRequest) {
           name: business.name,
           description: business.description,
           address: business.address,
+          latitude: business.latitude,
+          longitude: business.longitude,
           city: business.city,
           category: business.category,
           rating: avgRating,
