@@ -15,10 +15,49 @@ export function BusinessSearchGrid({ locale }: BusinessSearchGridProps) {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
+  const [geoDetected, setGeoDetected] = useState(false)
   
   // Фильтры
   const [searchQuery, setSearchQuery] = useState('')
   const [filters, setFilters] = useState<{ city?: string; category?: string }>({})
+
+  // Определение города по IP при первой загрузке
+  useEffect(() => {
+    const detectedCity = localStorage.getItem('detectedCity')
+    const userChangedCity = localStorage.getItem('userChangedCity') === 'true'
+    
+    // Если пользователь уже выбрал город вручную, не переопределяем
+    if (userChangedCity && detectedCity) {
+      setFilters({ city: detectedCity })
+      setGeoDetected(true)
+      return
+    }
+    
+    // Если город уже был определен ранее, используем его
+    if (detectedCity) {
+      setFilters({ city: detectedCity })
+      setGeoDetected(true)
+      return
+    }
+    
+    // Определяем город по IP
+    fetch('/api/geolocation')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.citySlug) {
+          setFilters({ city: data.citySlug })
+          localStorage.setItem('detectedCity', data.citySlug)
+          setGeoDetected(true)
+        } else {
+          // Если не удалось определить город, продолжаем без фильтра
+          setGeoDetected(true)
+        }
+      })
+      .catch((error) => {
+        console.error('Error detecting city:', error)
+        setGeoDetected(true) // Все равно продолжаем, просто без автофильтра
+      })
+  }, [])
 
   // Загрузка городов и категорий
   useEffect(() => {
@@ -35,6 +74,11 @@ export function BusinessSearchGrid({ locale }: BusinessSearchGridProps) {
 
   // Загрузка бизнесов с фильтрами
   const loadBusinesses = useCallback(async (resetPage = false) => {
+    // Не загружаем, пока не определили город (или решили, что не будем)
+    if (!geoDetected) {
+      return
+    }
+    
     setLoading(true)
     try {
       const currentPage = resetPage ? 1 : page
@@ -78,19 +122,31 @@ export function BusinessSearchGrid({ locale }: BusinessSearchGridProps) {
     } finally {
       setLoading(false)
     }
-  }, [page, searchQuery, filters])
+  }, [page, searchQuery, filters, geoDetected])
 
   // Перезагрузка при изменении фильтров
   useEffect(() => {
-    loadBusinesses(true)
-  }, [searchQuery, filters])
+    if (geoDetected) {
+      loadBusinesses(true)
+    }
+  }, [searchQuery, filters, geoDetected])
 
   // Загрузка следующей страницы
   useEffect(() => {
-    if (page > 1) {
+    if (page > 1 && geoDetected) {
       loadBusinesses(false)
     }
-  }, [page])
+  }, [page, geoDetected])
+
+  // Обработчик изменения фильтров (когда пользователь выбирает вручную)
+  const handleFilterChange = (newFilters: { city?: string; category?: string }) => {
+    // Помечаем, что пользователь изменил город вручную
+    if (newFilters.city && newFilters.city !== filters.city) {
+      localStorage.setItem('userChangedCity', 'true')
+      localStorage.setItem('detectedCity', newFilters.city)
+    }
+    setFilters(newFilters)
+  }
 
   const handleLoadMore = () => {
     setPage((p) => p + 1)
@@ -102,11 +158,12 @@ export function BusinessSearchGrid({ locale }: BusinessSearchGridProps) {
       <div className="mb-8">
         <SearchBar
           onSearch={setSearchQuery}
-          onFilterChange={setFilters}
+          onFilterChange={handleFilterChange}
           cities={cities}
           categories={categories}
           locale={locale}
           sticky={true}
+          initialCity={filters.city}
         />
       </div>
 
@@ -120,7 +177,7 @@ export function BusinessSearchGrid({ locale }: BusinessSearchGridProps) {
       )}
 
       {/* Нет результатов */}
-      {!loading && businesses.length === 0 && (
+      {!loading && businesses.length === 0 && geoDetected && (
         <div className="text-center py-12">
           <p className="text-gray-600">
             {locale === 'ru' ? 'Ничего не найдено' : 'Midagi ei leitud'}

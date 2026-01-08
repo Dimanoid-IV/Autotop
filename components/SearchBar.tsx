@@ -11,6 +11,7 @@ interface SearchBarProps {
   categories?: Array<{ id: string; nameEt: string; nameRu: string; slug: string }>
   locale: string
   sticky?: boolean
+  initialCity?: string
 }
 
 export function SearchBar({
@@ -20,12 +21,23 @@ export function SearchBar({
   categories = [],
   locale,
   sticky = false,
+  initialCity,
 }: SearchBarProps) {
   const t = useTranslations('common')
   const [query, setQuery] = useState('')
-  const [selectedCity, setSelectedCity] = useState('')
+  const [selectedCity, setSelectedCity] = useState(initialCity || '')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [showFilters, setShowFilters] = useState(false)
+
+  // Обновляем при изменении initialCity
+  useEffect(() => {
+    if (initialCity && initialCity !== selectedCity) {
+      setSelectedCity(initialCity)
+      if (onFilterChange) {
+        onFilterChange({ city: initialCity, category: selectedCategory || undefined })
+      }
+    }
+  }, [initialCity])
 
   useEffect(() => {
     onSearch(query)

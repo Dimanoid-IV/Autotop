@@ -13,10 +13,31 @@ export function TopBusinesses({ locale }: TopBusinessesProps) {
   const t = useTranslations('top10')
   const [businesses, setBusinesses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [citySlug, setCitySlug] = useState<string | null>(null)
+
+  // Получаем определенный город из localStorage
+  useEffect(() => {
+    const detectedCity = localStorage.getItem('detectedCity')
+    setCitySlug(detectedCity)
+  }, [])
 
   useEffect(() => {
-    // Try to detect city from browser or use default
-    fetch('/api/top-businesses')
+    // Если город еще не определен, ждем немного
+    if (citySlug === null) {
+      // Проверяем еще раз через небольшую задержку
+      const timer = setTimeout(() => {
+        const detectedCity = localStorage.getItem('detectedCity')
+        setCitySlug(detectedCity || '')
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+    
+    const params = new URLSearchParams()
+    if (citySlug) {
+      params.append('city', citySlug)
+    }
+
+    fetch(`/api/top-businesses?${params.toString()}`)
       .then((res) => {
         if (!res.ok) {
           throw new Error('Failed to fetch top businesses')
@@ -34,7 +55,7 @@ export function TopBusinesses({ locale }: TopBusinessesProps) {
         setBusinesses([])
         setLoading(false)
       })
-  }, [])
+  }, [citySlug])
 
   if (loading) {
     return null

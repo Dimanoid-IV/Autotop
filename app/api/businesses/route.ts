@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     const city = searchParams.get('city')
     const category = searchParams.get('category')
     const search = searchParams.get('search')
+    const featured = searchParams.get('featured') === 'true'
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '12')
     const skip = (page - 1) * limit
@@ -41,6 +42,13 @@ export async function GET(request: NextRequest) {
 
     if (category) {
       where.category = { slug: category }
+    }
+
+    if (featured) {
+      where.isFeatured = true
+      where.featuredUntil = {
+        gte: new Date()
+      }
     }
 
     if (search) {
@@ -61,10 +69,15 @@ export async function GET(request: NextRequest) {
             where: { status: 'APPROVED' },
           },
         },
-        orderBy: [
-          { verified: 'desc' },
-          { createdAt: 'desc' },
-        ],
+        orderBy: featured
+          ? [
+              { featuredOrder: 'asc' },
+              { verified: 'desc' },
+            ]
+          : [
+              { verified: 'desc' },
+              { createdAt: 'desc' },
+            ],
         skip,
         take: limit,
       }),
