@@ -1,13 +1,36 @@
 import { NextIntlClientProvider } from 'next-intl'
 import { getMessages } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+import { Metadata } from 'next'
 import { routing } from '@/i18n/routing'
 import { Providers } from './providers'
 import Script from 'next/script'
+import { getBaseUrl } from '@/lib/url'
 import '../globals.css'
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }))
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  const baseUrl = getBaseUrl()
+  
+  return {
+    metadataBase: new URL(baseUrl),
+    alternates: {
+      canonical: `/${locale}`,
+      languages: {
+        'et': '/et',
+        'ru': '/ru',
+        'x-default': '/et',
+      },
+    },
+  }
 }
 
 export default async function LocaleLayout({
@@ -24,11 +47,15 @@ export default async function LocaleLayout({
   }
 
   const messages = await getMessages()
+  const baseUrl = getBaseUrl()
 
   return (
     <html lang={locale}>
       <head>
         <meta name="facebook-domain-verification" content="pqr35d8szz2pyh9atlpz7ftg7wkgv2" />
+        <link rel="alternate" hrefLang="et" href={`${baseUrl}/et`} />
+        <link rel="alternate" hrefLang="ru" href={`${baseUrl}/ru`} />
+        <link rel="alternate" hrefLang="x-default" href={`${baseUrl}/et`} />
         
         {/* Google Analytics */}
         <Script
