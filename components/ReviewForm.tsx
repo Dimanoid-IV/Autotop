@@ -65,8 +65,8 @@ export function ReviewForm({ businessId, onSuccess }: ReviewFormProps) {
       }
 
       console.log('✅ Review submitted successfully')
-      reset()
       setRating(0)
+      setError(null)
       onSuccess()
     } catch (err: any) {
       console.error('❌ Submission error:', err)
@@ -76,19 +76,21 @@ export function ReviewForm({ businessId, onSuccess }: ReviewFormProps) {
     }
   }
 
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    console.log('📋 Form onSubmit - preventing default and handling manually')
+    
+    const formData = new FormData(e.currentTarget)
+    const comment = formData.get('comment') as string
+    
+    console.log('📝 Form data:', { comment, rating })
+    
+    await onSubmit({ comment, rating })
+  }
+
   return (
     <form 
-      onSubmit={(e) => {
-        console.log('📋 Form onSubmit event!', { 
-          defaultPrevented: e.defaultPrevented,
-          rating,
-          errors 
-        })
-        handleSubmit((data) => {
-          console.log('📝 Form handleSubmit called', { data, rating, errors })
-          onSubmit(data)
-        })(e)
-      }} 
+      onSubmit={handleFormSubmit}
       className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -105,16 +107,13 @@ export function ReviewForm({ businessId, onSuccess }: ReviewFormProps) {
           {t('comment')} *
         </label>
         <textarea
-          {...register('comment', { required: 'Comment is required' })}
+          name="comment"
           rows={4}
+          required
+          minLength={1}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder={t('comment')}
         />
-        {errors.comment && (
-          <p className="text-sm text-red-600 mt-1">
-            {errors.comment.message as string}
-          </p>
-        )}
       </div>
 
       {error && (
