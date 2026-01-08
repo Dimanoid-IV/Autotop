@@ -5,6 +5,7 @@ import { Footer } from '@/components/Footer'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { HeroSection } from '@/components/HeroSection'
 import { SearchSection } from '@/components/SearchSection'
+import { FeaturedBusinesses } from '@/components/FeaturedBusinesses'
 import { TopBusinesses } from '@/components/TopBusinesses'
 import { LatestReviews } from '@/components/LatestReviews'
 import { BusinessGrid } from '@/components/BusinessGrid'
@@ -26,6 +27,7 @@ export default async function HomePage({
         <HeroSection locale={locale} />
         <div className="container mx-auto px-4 py-8">
           <SearchSection locale={locale} />
+          <FeaturedBusinesses locale={locale} />
           <BusinessGrid locale={locale} />
           <TopBusinesses locale={locale} />
           <LatestReviews locale={locale} />

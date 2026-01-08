@@ -125,6 +125,12 @@ model Business {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Featured/Premium placement fields
+  isFeatured    Boolean   @default(false)
+  featuredUntil DateTime?
+  featuredPlan  String? // "1month", "2months", "6months"
+  featuredOrder Int? // For random ordering in featured block
+
   city     City     @relation(fields: [cityId], references: [id])
   category Category @relation(fields: [categoryId], references: [id])
   owner    User?    @relation("BusinessOwner", fields: [ownerId], references: [id])
@@ -133,6 +139,7 @@ model Business {
   @@index([cityId])
   @@index([categoryId])
   @@index([verified])
+  @@index([isFeatured, featuredUntil])
 }
 
 model Review {

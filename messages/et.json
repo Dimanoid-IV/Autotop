@@ -71,6 +71,10 @@
     "carWash": "Autopesu",
     "detailing": "Detailimine",
     "serviceStation": "Teenindusjaam"
+  },
+  "advertise": {
+    "metaTitle": "Reklaam autoteenustele | AutoTop",
+    "metaDescription": "Paigutage oma autoteenus TOP-i avalehel ja saage rohkem kliente"
   }
 }
 
