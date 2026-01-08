@@ -12,6 +12,52 @@ const reviewSchema = z.object({
   businessId: z.string(),
 })
 
+// GET all reviews (with optional status filter)
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get('status')
+    
+    const { prisma } = await import('@/lib/prisma')
+    
+    const where: any = {}
+    if (status) {
+      where.status = status
+    }
+    
+    const reviews = await prisma.review.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+        business: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+    
+    return NextResponse.json(reviews)
+  } catch (error) {
+    console.error('Error fetching reviews:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Verify JWT token

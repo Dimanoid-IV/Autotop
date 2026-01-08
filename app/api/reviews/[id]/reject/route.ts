@@ -6,11 +6,9 @@ export const runtime = 'nodejs'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params
-    
     // Verify JWT token
     const token = request.cookies.get('auth-token')?.value
     if (!token) {
@@ -19,29 +17,34 @@ export async function POST(
 
     const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET!)
     const { payload } = await jwtVerify(token, secret)
-
-    if (payload.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
+    
+    const userId = payload.id as string
+    if (!userId) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
     const { prisma } = await import('@/lib/prisma')
-
-    const review = await prisma.review.findUnique({
-      where: { id },
+    
+    // Check if user is admin
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
     })
 
-    if (!review) {
-      return NextResponse.json({ error: 'Review not found' }, { status: 404 })
+    if (user?.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Forbidden - Admin access required' },
+        { status: 403 }
+      )
     }
 
-    await prisma.review.update({
-      where: { id },
-      data: {
-        status: 'REJECTED',
-      },
+    // Reject the review
+    const review = await prisma.review.update({
+      where: { id: params.id },
+      data: { status: 'REJECTED' },
     })
 
-    return NextResponse.json({ success: true, message: 'Review rejected' })
+    return NextResponse.json(review)
   } catch (error) {
     console.error('Error rejecting review:', error)
     return NextResponse.json(
@@ -50,5 +53,3 @@ export async function POST(
     )
   }
 }
-
-

@@ -76,3 +76,5 @@ Xk8pL2mN9qR4sT7vW0yZ3bC6dF1gH4jK7mP0qS3tV6wY9zB2eE5hH8kK1mM4pP7rR0tT3vV6wW9yY2zZ
 После добавления переменной на Vercel, проверьте логи сборки - ошибка "Failed to collect page data" должна исчезнуть.
 
 
+
+

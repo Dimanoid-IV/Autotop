@@ -251,3 +251,4 @@ export default function PrivacyPolicyPage({ params }: { params: { locale: string
   )
 }
 
+

@@ -53,3 +53,5 @@ https://autotop.vercel.app/api/businesses/[id]
 - ✅ API `/api/businesses/[id]` работает правильно
 
 
+
+
