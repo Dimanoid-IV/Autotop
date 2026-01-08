@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { BusinessCard } from './BusinessCard'
 
 interface FeaturedBusinessesProps {
@@ -11,6 +11,7 @@ export function FeaturedBusinesses({ locale }: FeaturedBusinessesProps) {
   const [businesses, setBusinesses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [citySlug, setCitySlug] = useState<string | null>(null)
+  const loadedRef = useRef(false)
 
   // Получаем определенный город из localStorage
   useEffect(() => {
@@ -19,22 +20,34 @@ export function FeaturedBusinesses({ locale }: FeaturedBusinessesProps) {
   }, [])
 
   useEffect(() => {
-    // Если город еще не определен, ждем немного
+    // Предотвращаем повторные загрузки
+    if (loadedRef.current) {
+      return
+    }
+
+    // Если город еще не определен, ждем немного (только один раз)
     if (citySlug === null) {
-      // Проверяем еще раз через небольшую задержку
       const timer = setTimeout(() => {
         const detectedCity = localStorage.getItem('detectedCity')
+        // Устанавливаем пустую строку, если города нет
         setCitySlug(detectedCity || '')
-      }, 1000)
+      }, 1500)
       return () => clearTimeout(timer)
     }
 
+    // Помечаем, что начинаем загрузку
+    loadedRef.current = true
+
+    let cancelled = false
+
     const params = new URLSearchParams()
-    if (citySlug) {
+    params.append('limit', '6')
+    params.append('featured', 'true')
+    if (citySlug && citySlug !== '') {
       params.append('city', citySlug)
     }
 
-    fetch(`/api/businesses?${params.toString()}&limit=6&featured=true`)
+    fetch(`/api/businesses?${params.toString()}`)
       .then((res) => {
         if (!res.ok) {
           throw new Error('Failed to fetch featured businesses')
@@ -42,15 +55,24 @@ export function FeaturedBusinesses({ locale }: FeaturedBusinessesProps) {
         return res.json()
       })
       .then((data) => {
-        const featured = (data?.businesses || []).slice(0, 6)
-        setBusinesses(featured)
-        setLoading(false)
+        if (!cancelled) {
+          const featured = (data?.businesses || []).slice(0, 6)
+          setBusinesses(featured)
+          setLoading(false)
+        }
       })
       .catch((error) => {
-        console.error('Error loading featured businesses:', error)
-        setBusinesses([])
-        setLoading(false)
+        if (!cancelled) {
+          console.error('Error loading featured businesses:', error)
+          setBusinesses([])
+          setLoading(false)
+          loadedRef.current = false // Разрешаем повторную попытку при ошибке
+        }
       })
+
+    return () => {
+      cancelled = true
+    }
   }, [citySlug])
 
   if (loading) {

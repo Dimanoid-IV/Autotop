@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { BusinessCard } from './BusinessCard'
 import { Award } from 'lucide-react'
@@ -14,6 +14,7 @@ export function TopBusinesses({ locale }: TopBusinessesProps) {
   const [businesses, setBusinesses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [citySlug, setCitySlug] = useState<string | null>(null)
+  const loadedRef = useRef(false)
 
   // Получаем определенный город из localStorage
   useEffect(() => {
@@ -22,18 +23,28 @@ export function TopBusinesses({ locale }: TopBusinessesProps) {
   }, [])
 
   useEffect(() => {
-    // Если город еще не определен, ждем немного
+    // Предотвращаем повторные загрузки
+    if (loadedRef.current) {
+      return
+    }
+
+    // Если город еще не определен, ждем немного (только один раз)
     if (citySlug === null) {
-      // Проверяем еще раз через небольшую задержку
       const timer = setTimeout(() => {
         const detectedCity = localStorage.getItem('detectedCity')
+        // Устанавливаем пустую строку, если города нет
         setCitySlug(detectedCity || '')
-      }, 1000)
+      }, 1500)
       return () => clearTimeout(timer)
     }
-    
+
+    // Помечаем, что начинаем загрузку
+    loadedRef.current = true
+
+    let cancelled = false
+
     const params = new URLSearchParams()
-    if (citySlug) {
+    if (citySlug && citySlug !== '') {
       params.append('city', citySlug)
     }
 
@@ -45,16 +56,25 @@ export function TopBusinesses({ locale }: TopBusinessesProps) {
         return res.json()
       })
       .then((data) => {
-        // Ensure data is an array
-        const businessesList = Array.isArray(data) ? data : []
-        setBusinesses(businessesList)
-        setLoading(false)
+        if (!cancelled) {
+          // Ensure data is an array
+          const businessesList = Array.isArray(data) ? data : []
+          setBusinesses(businessesList)
+          setLoading(false)
+        }
       })
       .catch((error) => {
-        console.error('Error loading top businesses:', error)
-        setBusinesses([])
-        setLoading(false)
+        if (!cancelled) {
+          console.error('Error loading top businesses:', error)
+          setBusinesses([])
+          setLoading(false)
+          loadedRef.current = false // Разрешаем повторную попытку при ошибке
+        }
       })
+
+    return () => {
+      cancelled = true
+    }
   }, [citySlug])
 
   if (loading) {

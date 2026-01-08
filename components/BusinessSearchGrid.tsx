@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { BusinessCard } from './BusinessCard'
 import { SearchBar } from './SearchBar'
 
@@ -20,6 +20,10 @@ export function BusinessSearchGrid({ locale }: BusinessSearchGridProps) {
   // Фильтры
   const [searchQuery, setSearchQuery] = useState('')
   const [filters, setFilters] = useState<{ city?: string; category?: string }>({})
+
+  // Ref для отслеживания текущего запроса и предотвращения дубликатов
+  const loadingRef = useRef(false)
+  const lastFiltersRef = useRef<string>('')
 
   // Определение города по IP при первой загрузке
   useEffect(() => {
@@ -73,70 +77,103 @@ export function BusinessSearchGrid({ locale }: BusinessSearchGridProps) {
   }, [])
 
   // Загрузка бизнесов с фильтрами
-  const loadBusinesses = useCallback(async (resetPage = false) => {
-    // Не загружаем, пока не определили город (или решили, что не будем)
+  useEffect(() => {
+    // Не загружаем, пока не определили город
     if (!geoDetected) {
       return
     }
-    
-    setLoading(true)
-    try {
-      const currentPage = resetPage ? 1 : page
-      
-      // Строим URL с параметрами
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: '12',
-      })
-      
-      if (searchQuery) params.append('search', searchQuery)
-      if (filters.city) params.append('city', filters.city)
-      if (filters.category) params.append('category', filters.category)
 
-      const response = await fetch(`/api/businesses?${params.toString()}`, {
-        cache: 'no-store',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+    // Создаем ключ для текущих фильтров
+    const filtersKey = `${searchQuery}|${filters.city || ''}|${filters.category || ''}`
+    
+    // Если фильтры не изменились и уже идет загрузка, пропускаем
+    if (filtersKey === lastFiltersRef.current && loadingRef.current) {
+      return
+    }
+
+    // Предотвращаем множественные одновременные запросы
+    if (loadingRef.current) {
+      return
+    }
+
+    loadingRef.current = true
+    lastFiltersRef.current = filtersKey
+    setLoading(true)
+
+    const params = new URLSearchParams({
+      page: '1',
+      limit: '12',
+    })
+    
+    if (searchQuery) params.append('search', searchQuery)
+    if (filters.city) params.append('city', filters.city)
+    if (filters.category) params.append('category', filters.category)
+
+    fetch(`/api/businesses?${params.toString()}`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to fetch businesses: ${res.status}`)
+        }
+        return res.json()
       })
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch businesses: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      const businessesList = data?.businesses || []
-      const pagination = data?.pagination || { page: 1, totalPages: 1 }
-      
-      if (resetPage || currentPage === 1) {
+      .then((data) => {
+        const businessesList = data?.businesses || []
+        const pagination = data?.pagination || { page: 1, totalPages: 1 }
+        
         setBusinesses(businessesList)
         setPage(1)
-      } else {
+        setHasMore(pagination.page < pagination.totalPages)
+        loadingRef.current = false
+        setLoading(false)
+      })
+      .catch((error) => {
+        console.error('Error loading businesses:', error)
+        setBusinesses([])
+        loadingRef.current = false
+        setLoading(false)
+      })
+  }, [geoDetected, searchQuery, filters.city, filters.category])
+
+  // Загрузка следующей страницы (только при изменении page > 1)
+  useEffect(() => {
+    if (!geoDetected || page <= 1 || loadingRef.current) {
+      return
+    }
+
+    loadingRef.current = true
+    setLoading(true)
+
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: '12',
+    })
+    
+    if (searchQuery) params.append('search', searchQuery)
+    if (filters.city) params.append('city', filters.city)
+    if (filters.category) params.append('category', filters.category)
+
+    fetch(`/api/businesses?${params.toString()}`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to fetch businesses: ${res.status}`)
+        }
+        return res.json()
+      })
+      .then((data) => {
+        const businessesList = data?.businesses || []
+        const pagination = data?.pagination || { page: 1, totalPages: 1 }
+        
         setBusinesses((prev) => [...prev, ...businessesList])
-      }
-      
-      setHasMore(pagination.page < pagination.totalPages)
-    } catch (error) {
-      console.error('Error loading businesses:', error)
-      setBusinesses([])
-    } finally {
-      setLoading(false)
-    }
-  }, [page, searchQuery, filters, geoDetected])
-
-  // Перезагрузка при изменении фильтров
-  useEffect(() => {
-    if (geoDetected) {
-      loadBusinesses(true)
-    }
-  }, [searchQuery, filters, geoDetected])
-
-  // Загрузка следующей страницы
-  useEffect(() => {
-    if (page > 1 && geoDetected) {
-      loadBusinesses(false)
-    }
-  }, [page, geoDetected])
+        setHasMore(pagination.page < pagination.totalPages)
+        loadingRef.current = false
+        setLoading(false)
+      })
+      .catch((error) => {
+        console.error('Error loading businesses:', error)
+        loadingRef.current = false
+        setLoading(false)
+      })
+  }, [page, geoDetected, searchQuery, filters.city, filters.category])
 
   // Обработчик изменения фильтров (когда пользователь выбирает вручную)
   const handleFilterChange = (newFilters: { city?: string; category?: string }) => {
