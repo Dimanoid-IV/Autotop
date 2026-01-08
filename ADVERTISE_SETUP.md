@@ -3,9 +3,10 @@
 ## ✅ Что было создано:
 
 1. **Страница для владельцев:** `/advertise` - 3 тарифных плана
-2. **Компонент FeaturedBusinesses** - рекламный блок на главной (6 мест)
-3. **Stripe webhook** - автоматическая активация после оплаты
-4. **Обновленная БД схема** - поля для featured бизнесов
+2. **Форма заявки** - владельцы отправляют заявку через форму
+3. **Email уведомления** - вам приходит заявка на email
+4. **Компонент FeaturedBusinesses** - рекламный блок на главной (6 мест)
+5. **Обновленная БД схема** - поля для featured бизнесов
 
 ---
 
@@ -25,79 +26,20 @@ npx prisma migrate dev --name add_featured_businesses
 
 ---
 
-### 2️⃣ Создайте Payment Links в Stripe:
+### 2️⃣ Настройте переменные окружения:
 
-1. Откройте [Stripe Dashboard](https://dashboard.stripe.com/test/payment-links)
-
-2. **Создайте 3 Payment Link:**
-
-#### Тариф "1 месяц" (15€):
-- Product: "Featured Placement - 1 Month"
-- Price: 15 EUR
-- Type: One-time payment
-- Metadata:
-  - `plan`: `1month`
-  - `businessId`: `{CHECKOUT_SESSION_ID}` (заполнится автоматически)
-
-#### Тариф "2 месяца" (28€):
-- Product: "Featured Placement - 2 Months"
-- Price: 28 EUR
-- Type: One-time payment
-- Metadata:
-  - `plan`: `2months`
-  - `businessId`: `{CHECKOUT_SESSION_ID}`
-
-#### Тариф "6 месяцев" (75€):
-- Product: "Featured Placement - 6 Months"
-- Price: 75 EUR
-- Type: One-time payment
-- Metadata:
-  - `plan`: `6months`
-  - `businessId`: `{CHECKOUT_SESSION_ID}`
-
-3. **Скопируйте ссылки** и добавьте в `.env`:
+Добавьте в `.env` (если ещё нет):
 
 ```env
-NEXT_PUBLIC_STRIPE_LINK_1MONTH=https://buy.stripe.com/test_...
-NEXT_PUBLIC_STRIPE_LINK_2MONTHS=https://buy.stripe.com/test_...
-NEXT_PUBLIC_STRIPE_LINK_6MONTHS=https://buy.stripe.com/test_...
+# Email для получения заявок
+ADMIN_EMAIL=dmitri.ivkin@gmail.com
+
+# Email настройки уже должны быть:
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
 ```
-
----
-
-### 3️⃣ Настройте Stripe Webhook:
-
-1. Откройте [Webhooks](https://dashboard.stripe.com/test/webhooks)
-
-2. **Add endpoint:**
-   - URL: `https://autotop.vercel.app/api/webhooks/stripe`
-   - Events: 
-     - `checkout.session.completed`
-     - `customer.subscription.deleted`
-
-3. **Скопируйте Webhook Secret** и добавьте в `.env`:
-
-```env
-STRIPE_WEBHOOK_SECRET=whsec_...
-```
-
-4. **Убедитесь что есть:**
-
-```env
-STRIPE_SECRET_KEY=sk_test_...
-```
-
----
-
-### 4️⃣ Деплой на Vercel:
-
-```bash
-git add .
-git commit -m "Add featured placement system with Stripe integration"
-git push origin main
-```
-
-Vercel автоматически задеплоит изменения.
 
 ---
 
@@ -105,27 +47,64 @@ Vercel автоматически задеплоит изменения.
 
 ### Для владельцев бизнеса:
 
-1. Заходят на `/advertise`
+1. Заходят на **`/advertise`**
 2. Выбирают тариф (1, 2 или 6 месяцев)
-3. Оплачивают через Stripe
-4. **Автоматически** через 5 минут их бизнес попадает в топ
+3. Нажимают **"Подать заявку"**
+4. Заполняют форму:
+   - Название автосервиса
+   - Контактное лицо
+   - Email
+   - Телефон
+   - Дополнительная информация
+5. Отправляют заявку
 
-### На главной странице:
+### Что происходит дальше:
 
-- **Рекламный блок** с 6 автосервисами
-- **Синяя рамка** + метка "TOP"
-- **Случайный порядок** (каждый раз разный)
-- **Дисклеймер** "Реклама" внизу
+1. ✅ **Вам на email** приходит уведомление с данными:
+   - Выбранный тариф
+   - Контакты клиента
+   - Дополнительная информация
 
-### Webhook обработка:
+2. ✅ **Клиенту на email** приходит подтверждение о получении заявки
 
-1. Пользователь оплачивает → Stripe отправляет webhook
-2. Наш сервер получает событие `checkout.session.completed`
-3. Автоматически обновляем БД:
-   - `isFeatured = true`
-   - `featuredUntil = +30/60/180 дней`
-   - `featuredPlan = "1month"/"2months"/"6months"`
-4. Бизнес появляется в топе!
+3. 👤 **Вы вручную:**
+   - Создаёте ссылку на оплату (банк, Stripe, PayPal и т.д.)
+   - Отправляете ссылку клиенту
+   - После оплаты активируете размещение вручную в БД
+
+---
+
+## 🔧 Активация размещения вручную:
+
+После получения оплаты, выполните в БД:
+
+```sql
+-- Найдите ID бизнеса
+SELECT id, name FROM "Business" WHERE name LIKE '%название%';
+
+-- Активируйте featured на нужный период
+UPDATE "Business"
+SET 
+  "isFeatured" = true,
+  "featuredUntil" = NOW() + INTERVAL '30 days', -- или 60/180 дней
+  "featuredPlan" = '1month', -- или '2months'/'6months'
+  "featuredOrder" = floor(random() * 1000)
+WHERE id = 'business-id-here';
+```
+
+Или через Prisma Studio:
+
+```bash
+npx prisma studio
+```
+
+1. Откройте таблицу `Business`
+2. Найдите нужный автосервис
+3. Установите:
+   - `isFeatured`: `true`
+   - `featuredUntil`: дата окончания
+   - `featuredPlan`: `1month`/`2months`/`6months`
+   - `featuredOrder`: случайное число (0-999)
 
 ---
 
@@ -137,33 +116,53 @@ Vercel автоматически задеплоит изменения.
 
 ---
 
-## 🔧 Дополнительные настройки:
+## 📧 Пример письма которое вы получите:
 
-### Изменить количество мест в топе:
+```
+От: AutoTop <noreply@autotop.vercel.app>
+Кому: dmitri.ivkin@gmail.com
+Тема: Заявка на размещение: Autoservis Plus (1 месяц)
 
-В `components/FeaturedBusinesses.tsx` измените:
+🎯 Новая заявка на топ размещение!
 
-```typescript
-take: 6, // Измените на нужное количество
+Тариф:
+1 месяц (€15)
+
+Контактные данные:
+• Автосервис: Autoservis Plus
+• Контактное лицо: Иван Иванов
+• Email: ivan@example.com
+• Телефон: +372 12345678
+
+Дополнительная информация:
+Хотим попасть в топ как можно скорее
 ```
 
-### Изменить порядок показа:
+---
 
-Сейчас используется случайный порядок (`featuredOrder`).
-Можно изменить на:
-- По дате оплаты
-- По рейтингу
-- По алфавиту
+## 🌟 На главной странице:
+
+- **Рекламный блок** с 6 автосервисами
+- **Синяя рамка** + метка "TOP"
+- **Случайный порядок** (каждый раз разный)
+- **Дисклеймер** "Реклама" внизу
 
 ---
 
 ## ✅ Готово!
 
-После выполнения всех шагов система будет работать полностью автоматически! 🎉
+Система работает следующим образом:
+
+1. **Клиент** → Заявка через форму
+2. **Вы** → Получаете email
+3. **Вы** → Отправляете ссылку на оплату
+4. **Клиент** → Оплачивает
+5. **Вы** → Активируете вручную в БД
+6. **Клиент** → Появляется в топе!
 
 **Страницы:**
 - `/advertise` - для владельцев
 - `/` - главная с рекламным блоком
 
 **API:**
-- `/api/webhooks/stripe` - обработка платежей
+- `/api/featured/apply` - обработка заявок

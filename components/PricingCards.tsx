@@ -1,12 +1,22 @@
 'use client'
 
+import { useState } from 'react'
 import { Check } from 'lucide-react'
+import { ApplicationModal } from './ApplicationModal'
 
 interface PricingCardsProps {
   locale: string
 }
 
 export function PricingCards({ locale }: PricingCardsProps) {
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
+  const [showModal, setShowModal] = useState(false)
+
+  const handleApply = (planId: string) => {
+    setSelectedPlan(planId)
+    setShowModal(true)
+  }
+
   const plans = [
     {
       id: '1month',
@@ -15,7 +25,6 @@ export function PricingCards({ locale }: PricingCardsProps) {
       period: locale === 'ru' ? 'месяц' : 'kuu',
       discount: null,
       popular: false,
-      stripeLink: process.env.NEXT_PUBLIC_STRIPE_LINK_1MONTH || 'https://buy.stripe.com/test_1month',
       features: [
         locale === 'ru' ? 'Размещение в рекламном блоке' : 'Paigutus reklaamiplokis',
         locale === 'ru' ? 'До 5x больше просмотров' : 'Kuni 5x rohkem vaatamisi',
@@ -31,7 +40,6 @@ export function PricingCards({ locale }: PricingCardsProps) {
       period: locale === 'ru' ? '2 месяца' : '2 kuud',
       discount: '7%',
       popular: true,
-      stripeLink: process.env.NEXT_PUBLIC_STRIPE_LINK_2MONTHS || 'https://buy.stripe.com/test_2months',
       features: [
         locale === 'ru' ? 'Все из тарифа "1 месяц"' : 'Kõik plaanist "1 kuu"',
         locale === 'ru' ? 'Экономия 2€' : 'Säästa 2€',
@@ -47,7 +55,6 @@ export function PricingCards({ locale }: PricingCardsProps) {
       period: locale === 'ru' ? '6 месяцев' : '6 kuud',
       discount: '17%',
       popular: false,
-      stripeLink: process.env.NEXT_PUBLIC_STRIPE_LINK_6MONTHS || 'https://buy.stripe.com/test_6months',
       features: [
         locale === 'ru' ? 'Все из тарифа "2 месяца"' : 'Kõik plaanist "2 kuud"',
         locale === 'ru' ? 'Экономия 15€' : 'Säästa 15€',
@@ -58,8 +65,9 @@ export function PricingCards({ locale }: PricingCardsProps) {
   ]
 
   return (
-    <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-      {plans.map((plan) => (
+    <>
+      <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        {plans.map((plan) => (
         <div
           key={plan.id}
           className={`
@@ -115,8 +123,8 @@ export function PricingCards({ locale }: PricingCardsProps) {
             </ul>
 
             {/* CTA Button */}
-            <a
-              href={plan.stripeLink}
+            <button
+              onClick={() => handleApply(plan.id)}
               className={`
                 block w-full text-center px-6 py-4 rounded-lg font-semibold transition-colors
                 ${plan.popular 
@@ -124,11 +132,21 @@ export function PricingCards({ locale }: PricingCardsProps) {
                   : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}
               `}
             >
-              {locale === 'ru' ? 'Начать сейчас' : 'Alusta kohe'}
-            </a>
+              {locale === 'ru' ? 'Подать заявку' : 'Esita taotlus'}
+            </button>
           </div>
         </div>
       ))}
-    </div>
+      </div>
+
+      {/* Application Modal */}
+      {showModal && selectedPlan && (
+        <ApplicationModal
+          plan={plans.find(p => p.id === selectedPlan)!}
+          locale={locale}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+    </>
   )
 }
