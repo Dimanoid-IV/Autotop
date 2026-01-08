@@ -10,6 +10,29 @@ const transporter = nodemailer.createTransport({
   },
 })
 
+// Generic email sending function
+export async function sendEmail({
+  to,
+  subject,
+  html,
+}: {
+  to: string
+  subject: string
+  html: string
+}) {
+  try {
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to,
+      subject,
+      html,
+    })
+  } catch (error) {
+    console.error('Error sending email:', error)
+    throw error
+  }
+}
+
 export async function sendReviewModerationEmail(
   reviewId: string,
   businessName: string,
