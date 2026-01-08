@@ -101,18 +101,38 @@ export function BusinessDetails({ business, locale }: BusinessDetailsProps) {
               </div>
             )}
 
-            {business.latitude && business.longitude && (
+            {/* Map - показываем всегда если есть адрес или координаты */}
+            {(business.latitude && business.longitude) || business.address ? (
               <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-4">Map</h2>
-                <div className="h-64 rounded-lg overflow-hidden">
-                  <DynamicMap
-                    latitude={business.latitude}
-                    longitude={business.longitude}
-                    name={business.name}
-                  />
+                <h2 className="text-xl font-semibold mb-4">
+                  {locale === 'ru' ? 'Карта' : 'Kaart'}
+                </h2>
+                <div className="h-96 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                  {business.latitude && business.longitude ? (
+                    // Leaflet карта с координатами
+                    <DynamicMap
+                      latitude={business.latitude}
+                      longitude={business.longitude}
+                      name={business.name}
+                    />
+                  ) : (
+                    // Google Maps Embed по адресу
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      allowFullScreen
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={`https://www.google.com/maps?q=${encodeURIComponent(
+                        `${business.city.nameRu || business.city.nameEt}, ${business.address}, Estonia`
+                      )}&output=embed`}
+                      className="w-full h-full"
+                    />
+                  )}
                 </div>
               </div>
-            )}
+            ) : null}
 
             <OwnerVerificationCTA
               business={business}

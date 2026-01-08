@@ -56,26 +56,6 @@ export function BusinessCard({ business, locale }: BusinessCardProps) {
         <span>{cityName}, {business.address}</span>
       </div>
 
-      {/* Google Map */}
-      {(business.latitude && business.longitude) || business.address ? (
-        <div className="mb-4 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
-          <iframe
-            width="100%"
-            height="150"
-            style={{ border: 0 }}
-            loading="lazy"
-            allowFullScreen
-            referrerPolicy="no-referrer-when-downgrade"
-            src={`https://www.google.com/maps?q=${encodeURIComponent(
-              business.latitude && business.longitude
-                ? `${business.latitude},${business.longitude}`
-                : `${cityName}, ${business.address}, Estonia`
-            )}&output=embed`}
-            className="w-full"
-          />
-        </div>
-      ) : null}
-
       {business.description && (
         <p className="text-gray-700 text-sm mb-4 line-clamp-2">
           {business.description}
