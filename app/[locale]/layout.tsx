@@ -3,6 +3,7 @@ import { getMessages } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { routing } from '@/i18n/routing'
 import { Providers } from './providers'
+import Script from 'next/script'
 import '../globals.css'
 
 export function generateStaticParams() {
@@ -28,6 +29,20 @@ export default async function LocaleLayout({
     <html lang={locale}>
       <head>
         <meta name="facebook-domain-verification" content="pqr35d8szz2pyh9atlpz7ftg7wkgv2" />
+        
+        {/* Google Analytics */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-JZ4SB6WLF0"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-JZ4SB6WLF0');
+          `}
+        </Script>
       </head>
       <body>
         <NextIntlClientProvider messages={messages}>
