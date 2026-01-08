@@ -77,10 +77,19 @@ export function ReviewForm({ businessId, onSuccess }: ReviewFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit((data) => {
-      console.log('📝 Form handleSubmit called', { data, rating, errors })
-      onSubmit(data)
-    })} className="space-y-4">
+    <form 
+      onSubmit={(e) => {
+        console.log('📋 Form onSubmit event!', { 
+          defaultPrevented: e.defaultPrevented,
+          rating,
+          errors 
+        })
+        handleSubmit((data) => {
+          console.log('📝 Form handleSubmit called', { data, rating, errors })
+          onSubmit(data)
+        })(e)
+      }} 
+      className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           {t('rating')} *
@@ -118,6 +127,14 @@ export function ReviewForm({ businessId, onSuccess }: ReviewFormProps) {
         <button
           type="submit"
           disabled={submitting || rating === 0}
+          onClick={(e) => {
+            console.log('🖱️ Button clicked!', { 
+              type: e.currentTarget.type,
+              disabled: e.currentTarget.disabled,
+              rating,
+              submitting
+            })
+          }}
           className="px-6 py-2 bg-accent text-white rounded-md hover:bg-accent-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting ? t('loading') : t('submit')}
