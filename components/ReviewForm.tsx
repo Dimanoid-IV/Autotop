@@ -2,15 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { StarRating } from './StarRating'
-
-const reviewSchema = z.object({
-  rating: z.number().min(1).max(5),
-  comment: z.string().min(1, 'Comment is required'),
-})
 
 interface ReviewFormProps {
   businessId: string
@@ -20,24 +12,20 @@ interface ReviewFormProps {
 export function ReviewForm({ businessId, onSuccess }: ReviewFormProps) {
   const t = useTranslations('review')
   const [rating, setRating] = useState(0)
+  const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm({
-    resolver: zodResolver(reviewSchema),
-  })
-
-  const onSubmit = async (data: any) => {
-    console.log('🚀 onSubmit called', { data, rating, businessId })
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
     
     if (rating === 0) {
-      console.error('❌ Rating is 0')
-      setError('Please select a rating')
+      setError(t('pleaseSelectRating'))
+      return
+    }
+    
+    if (!comment.trim()) {
+      setError(t('commentRequired'))
       return
     }
 
@@ -45,47 +33,29 @@ export function ReviewForm({ businessId, onSuccess }: ReviewFormProps) {
     setError(null)
 
     try {
-      console.log('📤 Sending review...')
       const response = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...data,
           rating,
+          comment,
           businessId,
         }),
       })
 
-      console.log('📥 Response received', { status: response.status, ok: response.ok })
-
       if (!response.ok) {
         const errorData = await response.json()
-        console.error('❌ Error response:', errorData)
-        throw new Error(errorData.error || 'Failed to submit review')
+        throw new Error(errorData.error || t('failedToSubmitReview'))
       }
 
-      console.log('✅ Review submitted successfully')
       setRating(0)
-      setError(null)
+      setComment('')
       onSuccess()
     } catch (err: any) {
-      console.error('❌ Submission error:', err)
-      setError(err.message || 'An error occurred')
+      setError(err.message || t('anErrorOccurred'))
     } finally {
       setSubmitting(false)
     }
-  }
-
-  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    console.log('📋 Form onSubmit - preventing default and handling manually')
-    
-    const formData = new FormData(e.currentTarget)
-    const comment = formData.get('comment') as string
-    
-    console.log('📝 Form data:', { comment, rating })
-    
-    await onSubmit({ comment, rating })
   }
 
   return (
@@ -98,7 +68,7 @@ export function ReviewForm({ businessId, onSuccess }: ReviewFormProps) {
         </label>
         <StarRating rating={rating} onChange={setRating} />
         {rating === 0 && (
-          <p className="text-sm text-red-600 mt-1">Please select a rating</p>
+          <p className="text-sm text-red-600 mt-1">{t('pleaseSelectRating')}</p>
         )}
       </div>
 
@@ -107,13 +77,16 @@ export function ReviewForm({ businessId, onSuccess }: ReviewFormProps) {
           {t('comment')} *
         </label>
         <textarea
-          name="comment"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
           rows={4}
           required
-          minLength={1}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder={t('comment')}
         />
+        {!comment.trim() && (
+          <p className="text-sm text-red-600 mt-1">{t('commentRequired')}</p>
+        )}
       </div>
 
       {error && (
@@ -125,15 +98,7 @@ export function ReviewForm({ businessId, onSuccess }: ReviewFormProps) {
       <div className="flex gap-4">
         <button
           type="submit"
-          disabled={submitting || rating === 0}
-          onClick={(e) => {
-            console.log('🖱️ Button clicked!', { 
-              type: e.currentTarget.type,
-              disabled: e.currentTarget.disabled,
-              rating,
-              submitting
-            })
-          }}
+          disabled={submitting || rating === 0 || !comment.trim()}
           className="px-6 py-2 bg-accent text-white rounded-md hover:bg-accent-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting ? t('loading') : t('submit')}

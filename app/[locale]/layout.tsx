@@ -56,13 +56,18 @@ export default async function LocaleLayout({
         <link rel="alternate" hrefLang="et" href={`${baseUrl}/et`} />
         <link rel="alternate" hrefLang="ru" href={`${baseUrl}/ru`} />
         <link rel="alternate" hrefLang="x-default" href={`${baseUrl}/et`} />
-        
-        {/* Google Analytics */}
+      </head>
+      <body>
+        <NextIntlClientProvider messages={messages}>
+          <Providers>{children}</Providers>
+        </NextIntlClientProvider>
+
+        {/* Google Analytics - moved to body with lazyOnload to prevent blocking */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-JZ4SB6WLF0"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
-        <Script id="google-analytics" strategy="afterInteractive">
+        <Script id="google-analytics" strategy="lazyOnload">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
@@ -70,11 +75,6 @@ export default async function LocaleLayout({
             gtag('config', 'G-JZ4SB6WLF0');
           `}
         </Script>
-      </head>
-      <body>
-        <NextIntlClientProvider messages={messages}>
-          <Providers>{children}</Providers>
-        </NextIntlClientProvider>
       </body>
     </html>
   )
