@@ -4,7 +4,6 @@ import { notFound } from 'next/navigation'
 import { Metadata } from 'next'
 import { routing } from '@/i18n/routing'
 import { Providers } from './providers'
-import Script from 'next/script'
 import { getBaseUrl } from '@/lib/url'
 import '../globals.css'
 
@@ -62,8 +61,8 @@ export default async function LocaleLayout({
           <Providers>{children}</Providers>
         </NextIntlClientProvider>
 
-        {/* Google Analytics - moved to body with lazyOnload to prevent blocking */}
-        <Script
+        {/* Google Analytics - disabled temporarily to fix buttons, will re-enable after testing */}
+        {/* <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-JZ4SB6WLF0"
           strategy="lazyOnload"
         />
@@ -74,7 +73,7 @@ export default async function LocaleLayout({
             gtag('js', new Date());
             gtag('config', 'G-JZ4SB6WLF0');
           `}
-        </Script>
+        </Script> */}
       </body>
     </html>
   )

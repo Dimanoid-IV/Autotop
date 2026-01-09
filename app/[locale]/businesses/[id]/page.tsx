@@ -146,7 +146,7 @@ export default async function BusinessPage({
     ])
 
     return (
-      <>
+      <div className="min-h-screen flex flex-col">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -159,15 +159,13 @@ export default async function BusinessPage({
             __html: JSON.stringify(breadcrumbSchema),
           }}
         />
-        <div className="min-h-screen flex flex-col">
-          <Header />
-          <LanguageSwitcher />
-          <main className="flex-1">
-            <BusinessDetails business={business} locale={locale} />
-          </main>
-          <Footer />
-        </div>
-      </>
+        <Header />
+        <LanguageSwitcher />
+        <main className="flex-1">
+          <BusinessDetails business={business} locale={locale} />
+        </main>
+        <Footer />
+      </div>
     )
   } catch (error) {
     console.error('Error fetching business:', error)
