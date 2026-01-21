@@ -1,0 +1,17 @@
+{
+  "short_name": "Autotop",
+  "name": "Autotop.ee — Автосервисы Эстонии",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#FFFFFF",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#00c5cc"
+}
